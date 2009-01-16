@@ -17,7 +17,7 @@ BUILD_PRX=1
 PSP_FW_VERSION=303
 # ^^^^^^^^
 
-LIBS = -lSDL_ttf -lfreetype -lSDL_mixer -lvorbisidec -lSDL_image -lpng -lz -ljpeg $(shell $(PSPBIN)/sdl-config --libs | sed s/-lSDLmain//) -lpspdebug -lstdc++
+LIBS = -lSDL_ttf -lfreetype -lSDL_mixer -lvorbisidec -lSDL_image -lpng -lz -ljpeg $(shell $(PSPBIN)/sdl-config --libs | sed s/-lSDLmain//) -lpspdebug -lstdc++ -lpsppower -lpspctrl
 LIBDIR =
 LDFLAGS =
 

@@ -31,9 +31,11 @@
 #define psp // descomente esta linha para compilar para o PSP
 
 #ifdef psp
+
 #include <pspkernel.h>
 #include <pspdebug.h>
 #include <pspsdk.h>
+#include <psppower.h>
 
 #ifdef PSPFW3X
 PSP_MODULE_INFO("InsanerzShooter", 0x0, 1, 1);
@@ -354,7 +356,7 @@ public:
             position.y = position.y + velocidade;
             position.x = position.x + (sin(seno)) + 1;
             seno = seno + 0.1;
-            if (position.x > SCREEN_WIDTH) {
+            if (position.x + 29 > SCREEN_WIDTH) {
                 tipo = 2;
             }
 
@@ -486,7 +488,7 @@ public:
         pontos = 0;
         arma = 0;
         velocidadeArma = 430;
-        numeroDeBalas = 110;
+        numeroDeBalas = 100;
         velocidade = 1.5;
         spriteJogador.position.x = SCREEN_WIDTH / 2 - 32;
         spriteJogador.position.y = SCREEN_HEIGHT - 28;
@@ -1460,6 +1462,7 @@ public:
 int main(int argc, char *argv[]) {
 
     #ifdef psp
+	scePowerSetClockFrequency(333, 333, 166);
     SetupCallbacks();
     /* Functions registered with atexit() are called in reverse order, so make sure that we register sceKernelExitGame() first, so that it's called last. */
     atexit(sceKernelExitGame);
@@ -1476,11 +1479,14 @@ int main(int argc, char *argv[]) {
     int frequencia = 44100;
     int canais = 2; // 1 para mono e 2 para stereo.
     int buffer = 4096;
-    Uint16 formato = AUDIO_S16; //16 bits stereo
+    Uint16 formato = AUDIO_S16SYS; //16 bits stereo
     Mix_OpenAudio ( frequencia, formato, canais, buffer );
-    Mix_AllocateChannels(8);
+    Mix_AllocateChannels(16);
+	#ifdef psp
+	#else
     Mix_Music *musica = NULL;
     musica = Mix_LoadMUS ( "res/musica.ogg" );
+	#endif
 
     // Carregando efeitos sonoros
     Mix_Chunk *powerup = NULL;
@@ -1607,11 +1613,11 @@ int main(int argc, char *argv[]) {
     posicaoPontos->y = 22;
 
     // Cria uma surface e um SDL_Rect (posicao) usados para exibir a energia da arma do jogador
-    SDL_Surface *weaponSurface = NULL;
-    weaponSurface = TTF_RenderText_Solid( font, "WEAPON", corAmarela );
-    SDL_Rect weaponRect;
-    weaponRect.x = SCREEN_WIDTH * 0.4;
-    weaponRect.y = 0;
+    SDL_Surface *bulletSurface = NULL;
+    bulletSurface = TTF_RenderText_Solid( font, "BULLETS", corAmarela );
+    SDL_Rect bulletRect;
+    bulletRect.x = SCREEN_WIDTH * 0.4;
+    bulletRect.y = 0;
 
     int probDeCriarInimigo; // usado para calcular probabilidade de criar um novo inimigo
 
@@ -1621,12 +1627,15 @@ int main(int argc, char *argv[]) {
 	
 	fontPequena = TTF_OpenFont( "ariblk.ttf", 18 );
 
-    Mix_PlayMusic ( musica, -1 );
-
     for (int i=0; i < NUMBER_OF_BACKGROUND_STARS; i++) {
         grupo->adicionarSistemaParticula(rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT, 2, 0, -1);
     }
 
+	#ifdef psp
+	#else
+    Mix_PlayMusic(musica, 0); 
+    #endif
+	
     while (true) {
 
         screen->limpar();   // Pinta tudo de preto
@@ -1680,7 +1689,7 @@ int main(int argc, char *argv[]) {
 
         if (jogadorEstaVivo) {
             SDL_BlitSurface(scoreSurface, NULL, screen->surface, &scoreRect);   // Exibe nome do jogo
-            SDL_BlitSurface(weaponSurface, NULL, screen->surface, &weaponRect);   // Exibe nome do jogo
+            SDL_BlitSurface(bulletSurface, NULL, screen->surface, &bulletRect);   // Exibe nome do jogo
         }
 
         if (jogadorEstaVivo == true && grupoDeInimigos.verificaColisao(jogador)) {
@@ -1708,7 +1717,7 @@ int main(int argc, char *argv[]) {
         SDL_Flip(screen->surface);
 
         // se tiver menos do que 50 inimigos, tem certa probabilidade de criar um novo inimigo
-        if (grupoDeInimigos.inimigos.size() < 50) {
+        if (grupoDeInimigos.inimigos.size() < 50 && !gamePaused) {
             if (pontos < 100 && grupoDeInimigos.inimigos.size() < 30) {
                 probDeCriarInimigo = rand() % 100;
             } else if (pontos < 300 && grupoDeInimigos.inimigos.size() < 30) {
@@ -1753,7 +1762,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Probabilidade de criar um powerup novo
-        int probDeCriarPowerUp = rand() % 3000;
+        int probDeCriarPowerUp = rand() % 2000;
         if (probDeCriarPowerUp == 1) {
             PowerUp p = PowerUp(powerUp1Sprite, 0);
             grupoDePowerUps.adicionar(p);
@@ -1770,8 +1779,10 @@ int main(int argc, char *argv[]) {
 	Mix_FreeChunk(laser);
 	Mix_FreeChunk(explosion);
 	Mix_FreeChunk(speedup);
-    Mix_HaltMusic ( );
-    //Mix_FreeMusic ( musica );
+	#ifdef psp
+	#else
+	Mix_FreeMusic(musica);
+	#endif
     Mix_CloseAudio( );
     TTF_Quit();
     #ifdef psp
