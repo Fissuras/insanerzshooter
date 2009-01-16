@@ -23,5 +23,6 @@ LDFLAGS =
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = InsanerzShooter
+PSP_EBOOT_ICON="icon0.png"
 
 include $(PSPSDK)/lib/build.mak
