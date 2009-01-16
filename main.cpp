@@ -65,6 +65,7 @@ using std::vector;
 
 // variaveis globais (sim, podre.. depois eu tiro isso)
 int pontos = 0;
+int hiscore = 0;
 bool jogadorEstaVivo = false;
 bool gamePaused = false;
 
@@ -1462,7 +1463,7 @@ public:
 int main(int argc, char *argv[]) {
 
     #ifdef psp
-	scePowerSetClockFrequency(333, 333, 166);
+    scePowerSetClockFrequency(333, 333, 166);
     SetupCallbacks();
     /* Functions registered with atexit() are called in reverse order, so make sure that we register sceKernelExitGame() first, so that it's called last. */
     atexit(sceKernelExitGame);
@@ -1482,11 +1483,11 @@ int main(int argc, char *argv[]) {
     Uint16 formato = AUDIO_S16SYS; //16 bits stereo
     Mix_OpenAudio ( frequencia, formato, canais, buffer );
     Mix_AllocateChannels(16);
-	#ifdef psp
-	#else
+    #ifdef psp
+    #else
     Mix_Music *musica = NULL;
     musica = Mix_LoadMUS ( "res/musica.ogg" );
-	#endif
+    #endif
 
     // Carregando efeitos sonoros
     Mix_Chunk *powerup = NULL;
@@ -1533,25 +1534,41 @@ int main(int argc, char *argv[]) {
     TTF_Font *font = NULL;
     TTF_Init();
     #ifdef psp
-    font = TTF_OpenFont( "ariblk.ttf", 20 );
+    font = TTF_OpenFont( "FreeSans_bold.ttf", 20 );
     #else
-    font = TTF_OpenFont( "ariblk.ttf", 22 );
+    font = TTF_OpenFont( "FreeSans_bold.ttf", 22 );
     #endif
     if (!font) {
-        printf("Erro ao carregar a fonte. Está faltando o arquivo ariblk.ttf?");
+        printf("Erro ao carregar a fonte. Está faltando o arquivo FreeSans_bold.ttf?");
         exit(-1);
     }
+
+    // Cria uma surface usada para exibir o texto "Press FIRE to start"
+    TTF_Font *fontPequena = NULL;
+
+    #ifdef psp
+    fontPequena = TTF_OpenFont( "FreeSans_bold.ttf", 18 );
+    #else
+    fontPequena = TTF_OpenFont( "FreeSans_bold.ttf", 10 );
+    #endif
 
     // CORES
     SDL_Color corBranca = { 255, 255, 255 };
     SDL_Color corAmarela = { 255, 255, 0 };
 
-    // Cria uma surface usada para exibir nome do jogo
+    // Cria uma surface usada para exibir SCORE
     SDL_Surface *scoreSurface = NULL;
     SDL_Rect scoreRect;
     scoreSurface = TTF_RenderText_Solid( font, "SCORE", corAmarela );
     scoreRect.x = SCREEN_WIDTH * 0.05;
     scoreRect.y = 0;
+
+    // Cria uma surface usada para exibir HISCORE
+    SDL_Surface *hiscoreSurface = NULL;
+    SDL_Rect hiscoreRect;
+    hiscoreSurface = TTF_RenderText_Solid( font, "HISCORE", corAmarela );
+    hiscoreRect.x = SCREEN_WIDTH * 0.75;
+    hiscoreRect.y = 0;
 
     // Cria uma surface usada para exibir PAUSE
     SDL_Surface *pauseSurface = NULL;
@@ -1560,14 +1577,12 @@ int main(int argc, char *argv[]) {
     pauseRect.x = (SCREEN_WIDTH - pauseSurface->w) / 2;
     pauseRect.y = (SCREEN_HEIGHT - pauseSurface->h) / 2;
 
-    // Cria uma surface usada para exibir o texto "Press FIRE to start"
-    TTF_Font *fontPequena = NULL;
-
-    #ifdef psp
-    fontPequena = TTF_OpenFont( "ariblk.ttf", 18 );
-    #else
-    fontPequena = TTF_OpenFont( "ariblk.ttf", 14 );
-    #endif
+    // Cria uma surface usada para exibir a URL
+    SDL_Surface *urlSurface = NULL;
+    urlSurface = TTF_RenderText_Solid( fontPequena, "http://insanerzshooter.googlepages.com", corAmarela );
+    SDL_Rect urlRect;
+    urlRect.x = 0;
+    urlRect.y = 0;
 
     SDL_Surface *pressFireSurface = NULL;
     SDL_Rect pressFireRect;
@@ -1576,7 +1591,6 @@ int main(int argc, char *argv[]) {
     pressFireRect.x = (SCREEN_WIDTH - pressFireSurface->w) / 2;
 
     // Cria uma surface usada para exibir o texto "Press F11 toggle fullscreen"
-    fontPequena = TTF_OpenFont( "ariblk.ttf", 12 );
     SDL_Surface *pressF11Surface = NULL;
     SDL_Rect pressF11Rect;
     pressF11Rect.x = 10;
@@ -1612,6 +1626,13 @@ int main(int argc, char *argv[]) {
     posicaoPontos->x = SCREEN_WIDTH * 0.05 + (scoreSurface->w / 2);
     posicaoPontos->y = 22;
 
+    // Cria uma surface e um SDL_Rect (posicao) usados para exibir a pontuação mais alta do jogador
+    SDL_Surface *hiscoreNUMSurface = NULL;
+    hiscoreNUMSurface = TTF_RenderText_Solid( font, "0", corBranca );
+    SDL_Rect *hiscoreNUMRect = new SDL_Rect();
+    hiscoreNUMRect->x = (SCREEN_WIDTH * 0.75) + (hiscoreSurface->w / 2);
+    hiscoreNUMRect->y = 22;
+
     // Cria uma surface e um SDL_Rect (posicao) usados para exibir a energia da arma do jogador
     SDL_Surface *bulletSurface = NULL;
     bulletSurface = TTF_RenderText_Solid( font, "BULLETS", corAmarela );
@@ -1624,18 +1645,19 @@ int main(int argc, char *argv[]) {
     GrupoDeParticulas *grupo = new GrupoDeParticulas();
 
     char pontuacao[5];
-	
-	fontPequena = TTF_OpenFont( "ariblk.ttf", 18 );
+    char hiscoreChar[5];
+
+    fontPequena = TTF_OpenFont( "FreeSans_bold.ttf", 16 );
 
     for (int i=0; i < NUMBER_OF_BACKGROUND_STARS; i++) {
         grupo->adicionarSistemaParticula(rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT, 2, 0, -1);
     }
 
-	#ifdef psp
-	#else
-    Mix_PlayMusic(musica, 0); 
+    #ifdef psp
+    #else
+    Mix_PlayMusic(musica, 0);
     #endif
-	
+
     while (true) {
 
         screen->limpar();   // Pinta tudo de preto
@@ -1652,6 +1674,7 @@ int main(int argc, char *argv[]) {
         tiros->desenhar(screen->surface);               // Desenha tiros na tela
         teclado.verificaTeclasPressionadas();           // Verifica quais teclas estão sendo pressionadas
         grupoDePowerUps.verificaColisao(powerup, doubleshoot, tripleshoot, insaneshoot, speedup);
+
         if (jogadorEstaVivo) {
             screen->desenhar(jogador->spriteJogador);            // Desenha jogador na tela
             // probabilidade de criar particula de "fogo" da nave
@@ -1682,34 +1705,50 @@ int main(int argc, char *argv[]) {
                 SDL_BlitSurface(pressFireSurface, NULL, screen->surface, &pressFireRect);   // Exibe "Press FIRE to start"
             }
 
-            SDL_BlitSurface(pressF11Surface, NULL, screen->surface, &pressF11Rect);   // Exibe "Press FIRE to start"
+            SDL_BlitSurface(pressF11Surface, NULL, screen->surface, &pressF11Rect);   // Exibe F11
+            SDL_BlitSurface(urlSurface, NULL, screen->surface, &urlRect);   // Exibe a URL
+
         }
 
         teclado.acoesDoTeclado();	// Realiza ações do teclado (move a nave, atira, etc)
 
         if (jogadorEstaVivo) {
-            SDL_BlitSurface(scoreSurface, NULL, screen->surface, &scoreRect);   // Exibe nome do jogo
-            SDL_BlitSurface(bulletSurface, NULL, screen->surface, &bulletRect);   // Exibe nome do jogo
+            SDL_BlitSurface(scoreSurface, NULL, screen->surface, &scoreRect);   // Exibe SCORE
+            SDL_BlitSurface(bulletSurface, NULL, screen->surface, &bulletRect);   // Exibe BULLETS
         }
+
+        SDL_BlitSurface(hiscoreSurface, NULL, screen->surface, &hiscoreRect);   // Exibe HISCORE
 
         if (jogadorEstaVivo == true && grupoDeInimigos.verificaColisao(jogador)) {
             Mix_PlayChannel ( -1, explosion, 0 );
             jogador->morteTimer->start();
             jogadorEstaVivo = false;
+            if (pontos > hiscore) {
+                hiscore = pontos;
+            }
             grupo->adicionarSistemaParticula(jogador->spriteJogador.position.x, jogador->spriteJogador.position.y, 0, 500, 400);
         }
 
         if (jogadorEstaVivo) {
             // Esta parte precisa de um refactory... Para exibir a pontuação do usuário, só consegui fazer desta maneira:
             sprintf(pontuacao,"%i",pontos);
-			#ifdef psp
+            #ifdef psp
             pontosSurface = TTF_RenderText_Solid( fontPequena, pontuacao, corBranca );
-			#else
-			pontosSurface = TTF_RenderText_Solid( font, pontuacao, corBranca );
-			#endif
+            #else
+            pontosSurface = TTF_RenderText_Solid( font, pontuacao, corBranca );
+            #endif
             SDL_BlitSurface(pontosSurface, NULL, screen->surface, posicaoPontos);
             SDL_FreeSurface(pontosSurface);
         }
+
+        sprintf(hiscoreChar,"%i",hiscore);
+        #ifdef psp
+        hiscoreNUMSurface = TTF_RenderText_Solid( fontPequena, hiscoreChar, corBranca );
+        #else
+        hiscoreNUMSurface = TTF_RenderText_Solid( font, hiscoreChar, corBranca );
+        #endif
+        SDL_BlitSurface(hiscoreNUMSurface, NULL, screen->surface, hiscoreNUMRect);
+	SDL_FreeSurface(hiscoreNUMSurface);
 
         // Se necessário, aguarda alguns milisegundos para manter o FPS constante
         screen->atualizar();
@@ -1772,17 +1811,17 @@ int main(int argc, char *argv[]) {
         }
     }
 
-	Mix_FreeChunk(powerup);
-	Mix_FreeChunk(doubleshoot);
-	Mix_FreeChunk(tripleshoot);
-	Mix_FreeChunk(insaneshoot);
-	Mix_FreeChunk(laser);
-	Mix_FreeChunk(explosion);
-	Mix_FreeChunk(speedup);
-	#ifdef psp
-	#else
-	Mix_FreeMusic(musica);
-	#endif
+    Mix_FreeChunk(powerup);
+    Mix_FreeChunk(doubleshoot);
+    Mix_FreeChunk(tripleshoot);
+    Mix_FreeChunk(insaneshoot);
+    Mix_FreeChunk(laser);
+    Mix_FreeChunk(explosion);
+    Mix_FreeChunk(speedup);
+    #ifdef psp
+    #else
+    Mix_FreeMusic(musica);
+    #endif
     Mix_CloseAudio( );
     TTF_Quit();
     #ifdef psp

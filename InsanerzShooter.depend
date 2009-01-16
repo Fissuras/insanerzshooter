@@ -120,7 +120,7 @@
 	<pspdebug.h>
 	<pspsdk.h>
 
-1232021909 source:c:\documents and settings\administrador\desktop\psp\main.cpp
+1232117655 source:c:\documents and settings\administrador\desktop\psp\main.cpp
 	<stdlib.h>
 	<SDL/SDL.h>
 	<SDL/SDL_image.h>
@@ -136,4 +136,5 @@
 	<pspkernel.h>
 	<pspdebug.h>
 	<pspsdk.h>
+	<psppower.h>
 
