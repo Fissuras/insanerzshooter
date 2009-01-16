@@ -2,3 +2,5 @@
 Makefile
 main.cpp
 main.h
+mp3player.c
+mp3player.h
