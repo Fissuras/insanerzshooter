@@ -25,10 +25,11 @@
 #include <sstream>
 #include <string>
 #include <math.h>
+#include <fstream>
 #include <SDL/SDL_mixer.h>
 
 // Constantes de ambiente.. para poder compilar para o PSP e para PC
-#define psp // descomente esta linha para compilar para o PSP
+//#define psp // descomente esta linha para compilar para o PSP
 
 #ifdef psp
 
@@ -594,7 +595,7 @@ public:
             somaY = ((float(rand()) / RAND_MAX) - 0.5) * (rand()%6 + 2);
         }
 
-        if ( (tipo == 1 || tipo==2) && somaY < 0) {
+        if ( (tipo == 1 || tipo==2 || tipo == 3) && somaY < 0) {
             somaY = -somaY;
         }
 
@@ -610,6 +611,10 @@ public:
             corParaFadeR = 255;
             corParaFadeG = 255;
             corParaFadeB = 255;
+        } else if (tipo == 3) {
+            corParaFadeR = 0 + (rand()%102);
+            corParaFadeG = 150 + (rand()%45);
+            corParaFadeB = 185 + (rand()%70);
         }
 
     }
@@ -629,6 +634,9 @@ public:
         } else if (tipo == 2) {
             posicaoSDL.h = 2;
             posicaoSDL.w = 2;
+        } else if (tipo == 3) {
+            posicaoSDL.h = 2;
+            posicaoSDL.w = 2;
         }
 
         posicaoSDL.x = posicao.x;
@@ -636,7 +644,7 @@ public:
         cor = SDL_MapRGB( tela->format, corParaFadeR, corParaFadeG, corParaFadeB);
         SDL_FillRect(tela, &posicaoSDL, cor);
 
-        if (!gamePaused && (tipo==0 || tipo==1)) {
+        if (!gamePaused && (tipo == 0 || tipo == 1 || tipo == 3)) {
             if (corParaFadeR > 0) {
                 corParaFadeR--;
             }
@@ -661,6 +669,8 @@ public:
                     posicao.y = 0;
                     posicao.x = rand()%SCREEN_WIDTH;
                 }
+            } else if (tipo == 3) {
+                posicao.y = posicao.y - somaY;
             }
         }
 
@@ -682,8 +692,10 @@ public:
     }
 
     SistemaDeParticulas(int x, int y, int tipoNovo, int numParticulas, int tempoDeVidaMaximoNovo) {
+
         tempoDeVida = 0;
         tempoDeVidaMaximo = tempoDeVidaMaximoNovo;
+
         if (tipoNovo == 0) {
             for (int i = 0; i < numParticulas; i++) {
                 Particula p = Particula(x,y, tipoNovo);
@@ -697,6 +709,11 @@ public:
         } else if (tipoNovo == 2) {
 
             Particula p = Particula(x, y, tipoNovo);
+            particulas.push_back(p);
+
+        } else if (tipoNovo == 3) {
+
+            Particula p = Particula(x + rand()%8 + 5,y, tipoNovo);
             particulas.push_back(p);
 
         }
@@ -760,7 +777,6 @@ public:
 
     // Construtor padrão
     Tiros() {
-        spriteTiro = IL_Sprite("res/tiro.png", 2);
     }
 
     ~Tiros() {
@@ -926,7 +942,7 @@ public:
     }
 
     // Execura o método agir() de todos os inimigos e os desenha na tela/surface
-    void agirEdesenhar(SDL_Surface *tela) {
+    void agirEdesenhar(SDL_Surface *tela, GrupoDeParticulas *grupo) {
         for (int i = 0; i < inimigos.size(); i++) {
             if (!gamePaused) {
                 inimigos.at(i).agir();
@@ -936,6 +952,12 @@ public:
                 rect.x = inimigos.at(i).position.x;
                 rect.y = inimigos.at(i).position.y;
                 SDL_BlitSurface(inimigos.at(i).surface, NULL, tela, &rect);
+            }
+            int probDeCriarParticulaDeFogo = 10 - ((int) inimigos.at(i).velocidade); // a prob de criar particula de fogo será proporcional a vel da nave
+            if (!gamePaused) {
+                if (rand()%probDeCriarParticulaDeFogo == 1) {
+                    grupo->adicionarSistemaParticula(inimigos.at(i).position.x, inimigos.at(i).position.y, 3, 0, 20);
+                }
             }
         }
     }
@@ -1472,6 +1494,20 @@ int main(int argc, char *argv[]) {
     #endif
     srand(time(NULL));  // Melhora o sistema de geração de números randômicos (caso contrario a sequencia dos numeros gerados é sempre a mesma)
 
+    char pontuacao[5];
+    char *hiscoreChar;
+    hiscoreChar = new char[5];
+    FILE * pFile;
+
+    pFile = fopen ("hiscore.dat" , "rt");
+    if (pFile != NULL) {
+        fgets(hiscoreChar, 6, pFile);
+        hiscore = strtol(hiscoreChar, NULL, 10);
+        fclose(pFile);
+    } else {
+        hiscore = 0;
+    }
+
     IL_Screen *screen = new IL_Screen(false);       // Cria uma nova tela
     SDL_ShowCursor(false);                          // Esconde o ponteiro do mouse
     SDL_WM_SetCaption("Insanerz Shooter", NULL);    // Muda o título da janela
@@ -1515,6 +1551,7 @@ int main(int argc, char *argv[]) {
     // Criando e sprite do inimigo (ignore o ultimo parametro, por enquanto não é usado)
     IL_Sprite spriteInimigo("res/nave_inimigo.png", 2);
     IL_Sprite spriteInimigo2("res/nave_inimigo2.png", 2);
+    IL_Sprite spriteInimigo3("res/nave_inimigo3.png", 2);
 
     // Cria um grupo inicial de inimigos
     GrupoDeInimigos grupoDeInimigos = GrupoDeInimigos();
@@ -1546,11 +1583,7 @@ int main(int argc, char *argv[]) {
     // Cria uma surface usada para exibir o texto "Press FIRE to start"
     TTF_Font *fontPequena = NULL;
 
-    #ifdef psp
     fontPequena = TTF_OpenFont( "FreeSans_bold.ttf", 18 );
-    #else
-    fontPequena = TTF_OpenFont( "FreeSans_bold.ttf", 10 );
-    #endif
 
     // CORES
     SDL_Color corBranca = { 255, 255, 255 };
@@ -1644,9 +1677,6 @@ int main(int argc, char *argv[]) {
 
     GrupoDeParticulas *grupo = new GrupoDeParticulas();
 
-    char pontuacao[5];
-    char hiscoreChar[5];
-
     fontPequena = TTF_OpenFont( "FreeSans_bold.ttf", 16 );
 
     for (int i=0; i < NUMBER_OF_BACKGROUND_STARS; i++) {
@@ -1665,7 +1695,7 @@ int main(int argc, char *argv[]) {
         screen->desenharBarraFirePower(jogador);                       // Desenha a parte superior da tela
         grupoDePowerUps.moverEdesenhar(screen->surface);
         grupoDeInimigos.verificaColisao(tiros, grupo, explosion);  // Verifica se jogador matou algum inimigo
-        grupoDeInimigos.agirEdesenhar(screen->surface); // Move os inimigos e desenha eles na tela
+        grupoDeInimigos.agirEdesenhar(screen->surface, grupo); // Move os inimigos e desenha eles na tela
 
         if (!gamePaused) {
             tiros->atualizarPosicoes();                     // Move os tiros
@@ -1673,9 +1703,9 @@ int main(int argc, char *argv[]) {
 
         tiros->desenhar(screen->surface);               // Desenha tiros na tela
         teclado.verificaTeclasPressionadas();           // Verifica quais teclas estão sendo pressionadas
-        grupoDePowerUps.verificaColisao(powerup, doubleshoot, tripleshoot, insaneshoot, speedup);
 
         if (jogadorEstaVivo) {
+            grupoDePowerUps.verificaColisao(powerup, doubleshoot, tripleshoot, insaneshoot, speedup);
             screen->desenhar(jogador->spriteJogador);            // Desenha jogador na tela
             // probabilidade de criar particula de "fogo" da nave
             int probDeCriarParticulaDeFogo = 6 - ((int) jogador->velocidade); // a prob de criar particula de fogo será proporcional a vel da nave
@@ -1725,6 +1755,13 @@ int main(int argc, char *argv[]) {
             jogadorEstaVivo = false;
             if (pontos > hiscore) {
                 hiscore = pontos;
+
+                FILE *pFile = fopen("hiscore.dat", "w+");
+                sprintf(hiscoreChar,"%i",hiscore);
+                if (pFile != NULL) {
+                    fputs(hiscoreChar, pFile);
+                    fclose(pFile);
+                }
             }
             grupo->adicionarSistemaParticula(jogador->spriteJogador.position.x, jogador->spriteJogador.position.y, 0, 500, 400);
         }
@@ -1748,7 +1785,7 @@ int main(int argc, char *argv[]) {
         hiscoreNUMSurface = TTF_RenderText_Solid( font, hiscoreChar, corBranca );
         #endif
         SDL_BlitSurface(hiscoreNUMSurface, NULL, screen->surface, hiscoreNUMRect);
-	SDL_FreeSurface(hiscoreNUMSurface);
+        SDL_FreeSurface(hiscoreNUMSurface);
 
         // Se necessário, aguarda alguns milisegundos para manter o FPS constante
         screen->atualizar();
@@ -1785,7 +1822,15 @@ int main(int argc, char *argv[]) {
                 // 6 = giro longo sentido horario
                 // 7 = giro longo sentido anti-horario
                 if (pontos < 30) {
-                    grupoDeInimigos.criarNovoInimigo(spriteInimigo, rand()%3);
+                    int tipoRand = rand()%3;
+                    switch (tipoRand) {
+                        case 0:
+                            grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
+                        break;
+                        default:
+                            grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
+                        break;
+                    }
                 } else {
                     grupoDeInimigos.criarNovoInimigo(spriteInimigo, rand()%4);
                 }
@@ -1801,13 +1846,18 @@ int main(int argc, char *argv[]) {
         }
 
         // Probabilidade de criar um powerup novo
-        int probDeCriarPowerUp = rand() % 2000;
+        int probDeCriarPowerUp = rand() % 3000;
         if (probDeCriarPowerUp == 1) {
             PowerUp p = PowerUp(powerUp1Sprite, 0);
             grupoDePowerUps.adicionar(p);
-        } else if (probDeCriarPowerUp == 2 && jogador->velocidade < 4) {
-            PowerUp p = PowerUp(powerUp2Sprite, 1);
-            grupoDePowerUps.adicionar(p);
+        } else if (probDeCriarPowerUp == 2) {
+            if (jogador->velocidade < 4) {
+                PowerUp p = PowerUp(powerUp2Sprite, 1);
+                grupoDePowerUps.adicionar(p);
+            } else {
+                PowerUp p = PowerUp(powerUp1Sprite, 0);
+                grupoDePowerUps.adicionar(p);
+            }
         }
     }
 
