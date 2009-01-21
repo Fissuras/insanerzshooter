@@ -1688,7 +1688,13 @@ int main(int argc, char *argv[]) {
     Mix_PlayMusic(musica, 0);
     #endif
 
+    int systemTicks;
+    int nextFrameTicks;
+
     while (true) {
+
+        systemTicks = SDL_GetTicks();
+        nextFrameTicks = systemTicks + 10;
 
         screen->limpar();   // Pinta tudo de preto
         grupo->desenhar(screen->surface);               // desenha as particulas
@@ -1788,7 +1794,9 @@ int main(int argc, char *argv[]) {
         SDL_FreeSurface(hiscoreNUMSurface);
 
         // Se necessário, aguarda alguns milisegundos para manter o FPS constante
-        screen->atualizar();
+        //screen->atualizar();
+        systemTicks = SDL_GetTicks();
+        if (nextFrameTicks > systemTicks) SDL_Delay(nextFrameTicks-systemTicks);
         // Exibe o novo cenário ao usuário
         SDL_Flip(screen->surface);
 
