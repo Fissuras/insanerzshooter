@@ -698,7 +698,7 @@ public:
 
         if (tipoNovo == 0) {
             for (int i = 0; i < numParticulas; i++) {
-                Particula p = Particula(x,y, tipoNovo);
+                Particula p = Particula(x, y, tipoNovo);
                 particulas.push_back(p);
             }
         } else if (tipoNovo == 1) {
@@ -713,7 +713,7 @@ public:
 
         } else if (tipoNovo == 3) {
 
-            Particula p = Particula(x + rand()%8 + 5,y, tipoNovo);
+            Particula p = Particula(x + rand()%8 + 6, y, tipoNovo);
             particulas.push_back(p);
 
         }
@@ -1694,7 +1694,7 @@ int main(int argc, char *argv[]) {
     while (true) {
 
         systemTicks = SDL_GetTicks();
-        nextFrameTicks = systemTicks + 10;
+        nextFrameTicks = systemTicks + 8;
 
         screen->limpar();   // Pinta tudo de preto
         grupo->desenhar(screen->surface);               // desenha as particulas
@@ -1832,11 +1832,11 @@ int main(int argc, char *argv[]) {
                 if (pontos < 30) {
                     int tipoRand = rand()%3;
                     switch (tipoRand) {
-                        case 0:
-                            grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
+                    case 0:
+                        grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
                         break;
-                        default:
-                            grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
+                    default:
+                        grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
                         break;
                     }
                 } else {
