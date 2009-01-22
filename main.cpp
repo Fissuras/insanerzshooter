@@ -1834,18 +1834,18 @@ int main(int argc, char *argv[]) {
                 // 5 = giro curto sentido horario
                 // 6 = giro longo sentido horario
                 // 7 = giro longo sentido anti-horario
-		int tipoRand = rand()%3;
-		switch (tipoRand) {
-			case 0:
-				grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
-			break;
-			default:
-				grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
-			break;
-		}
-                if (pontos > 30) {
-                    grupoDeInimigos.criarNovoInimigo(spriteInimigo, rand()%4);
-                }
+        if (pontos > 30) {
+                grupoDeInimigos.criarNovoInimigo(spriteInimigo, rand()%4);
+        } else {
+
+            int tipoRand = rand()%3;
+            if (tipoRand == 0) {
+                grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
+            } else {
+                grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
+            }
+
+        }
             } else if (probDeCriarInimigo == 2) {
                 if (pontos > 30 && pontos < 150) {
                     if (rand()%8 == 1) {
