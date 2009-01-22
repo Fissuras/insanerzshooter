@@ -8,23 +8,31 @@ This is a classic shmup 2D, made with SDL.
 Changes
 ===================
 
-v0.3 (01/19/2009):
+v0.4 (22/01/2009):
+
+- Changed: the player sound explosion.
+
+- Fixed: PSP now has music!!!!!!!! The problem was the ogg format...
+- Fixed: pause again. Loop doesn't create powerups in background.
+- Fixed: the score and hiscore are centered in the screen.
+
+v0.3 (19/01/2009):
 
 - Added: particles to enemies.
 - Added: a new enemy sprite file.
 
-- Change: powerup appear a little less and appear more bullet powerup.
-- Change: now the hiscore SAVES!!!!
+- Changed: powerup appear a little less and appear more bullet powerup.
+- Changed: now the hiscore SAVES!!!!
 
 - Fixed: ghost powerup. Before, when you die still catch all the powerups :)
 
-v0.2 (01/16/2009):
+v0.2 (16/01/2009):
 
 - Added: icon0.png - the icon for XMB (psp).
 - Added: new font Free Sans bold.
 - Added: hiscore function.
 
-- Change: powerup appear a little more.
+- Changed: powerup appear a little more.
 
 - Fixed: pause. Loop doesn't continue to add enemies in background.
 
@@ -44,7 +52,11 @@ I've tested on my PSP 2000 CFW 5.00.
 Installation:
 --------------------
 
+PSP:
 Place the insanerzshooter folder into PSP/GAME.
+
+PC:
+Run the .exe :D
 
 Bugs
 ====================

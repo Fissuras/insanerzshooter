@@ -1513,35 +1513,41 @@ int main(int argc, char *argv[]) {
     SDL_WM_SetCaption("Insanerz Shooter", NULL);    // Muda o título da janela
 
     // iniciando sistema de som
-    int frequencia = 44100;
+    int frequencia = MIX_DEFAULT_FREQUENCY;
     int canais = 2; // 1 para mono e 2 para stereo.
-    int buffer = 4096;
-    Uint16 formato = AUDIO_S16SYS; //16 bits stereo
-    Mix_OpenAudio ( frequencia, formato, canais, buffer );
-    Mix_AllocateChannels(16);
+    int buffer = 1024;
+    Uint16 formato = MIX_DEFAULT_FORMAT; //16 bits stereo
+    Mix_OpenAudio( frequencia, formato, canais, buffer );
+    Mix_AllocateChannels(MIX_DEFAULT_CHANNELS);
     #ifdef psp
+    Mix_Music *musica = NULL;
+    musica = Mix_LoadMUS ( "res/musica.wav" );
+    Mix_PlayMusic(musica, -1);
     #else
     Mix_Music *musica = NULL;
-    musica = Mix_LoadMUS ( "res/musica.ogg" );
+    musica = Mix_LoadMUS ( "res/musica.wav" );
+    Mix_PlayMusic(musica, -1);
     #endif
 
     // Carregando efeitos sonoros
     Mix_Chunk *powerup = NULL;
-    powerup = Mix_LoadWAV ( "res/powerup.ogg" );
+    powerup = Mix_LoadWAV ( "res/powerup.wav" );
     Mix_Chunk *doubleshoot = NULL;
-    doubleshoot = Mix_LoadWAV ( "res/doubleshot.ogg" );
+    doubleshoot = Mix_LoadWAV ( "res/doubleshot.wav" );
     Mix_Chunk *tripleshoot = NULL;
-    tripleshoot = Mix_LoadWAV ( "res/tripleshot.ogg" );
+    tripleshoot = Mix_LoadWAV ( "res/tripleshot.wav" );
     Mix_Chunk *insaneshoot = NULL;
-    insaneshoot = Mix_LoadWAV ( "res/insaneshot.ogg" );
+    insaneshoot = Mix_LoadWAV ( "res/insaneshot.wav" );
     Mix_Chunk *laser = NULL;
-    laser = Mix_LoadWAV ( "res/laser.ogg" );
+    laser = Mix_LoadWAV ( "res/laser.wav" );
     Mix_Chunk *explosion = NULL;
-    explosion = Mix_LoadWAV ( "res/explosion.ogg" );
+    explosion = Mix_LoadWAV ( "res/explosion.wav" );
+    Mix_Chunk *playerExplosion = NULL;
+    playerExplosion = Mix_LoadWAV ( "res/bomb.wav" );
     Mix_Chunk *speedup = NULL;
-    speedup = Mix_LoadWAV ( "res/speedup.ogg" );
+    speedup = Mix_LoadWAV ( "res/speedup.wav" );
 
-    // Criando e posicionando o sprite do jogador (ignore o ultimo parametro, por enquanto não é usado)
+     // Criando e posicionando o sprite do jogador (ignore o ultimo parametro, por enquanto não é usado)
     IL_Sprite spriteJogador("res/nave.png", 2);
     spriteJogador.position.x = 416;
     spriteJogador.position.y = 480;
@@ -1655,9 +1661,9 @@ int main(int argc, char *argv[]) {
     // Cria uma surface e um SDL_Rect (posicao) usados para exibir a pontuação do jogador
     SDL_Surface *pontosSurface = NULL;
     pontosSurface = TTF_RenderText_Solid( font, "0", corBranca );
-    SDL_Rect *posicaoPontos = new SDL_Rect();
-    posicaoPontos->x = SCREEN_WIDTH * 0.05 + (scoreSurface->w / 2);
-    posicaoPontos->y = 22;
+    SDL_Rect *pontosRect = new SDL_Rect();
+    pontosRect->x = SCREEN_WIDTH * 0.05 + (scoreSurface->w / 2);
+    pontosRect->y = 22;
 
     // Cria uma surface e um SDL_Rect (posicao) usados para exibir a pontuação mais alta do jogador
     SDL_Surface *hiscoreNUMSurface = NULL;
@@ -1682,11 +1688,6 @@ int main(int argc, char *argv[]) {
     for (int i=0; i < NUMBER_OF_BACKGROUND_STARS; i++) {
         grupo->adicionarSistemaParticula(rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT, 2, 0, -1);
     }
-
-    #ifdef psp
-    #else
-    Mix_PlayMusic(musica, 0);
-    #endif
 
     int systemTicks;
     int nextFrameTicks;
@@ -1755,13 +1756,14 @@ int main(int argc, char *argv[]) {
 
         SDL_BlitSurface(hiscoreSurface, NULL, screen->surface, &hiscoreRect);   // Exibe HISCORE
 
+	// Verifica se o jogador foi atingido
         if (jogadorEstaVivo == true && grupoDeInimigos.verificaColisao(jogador)) {
-            Mix_PlayChannel ( -1, explosion, 0 );
+            Mix_PlayChannel ( -1, playerExplosion, 0 );
             jogador->morteTimer->start();
             jogadorEstaVivo = false;
             if (pontos > hiscore) {
                 hiscore = pontos;
-
+		// Adiciona a pontuacao maxima no arquivo de highscore
                 FILE *pFile = fopen("hiscore.dat", "w+");
                 sprintf(hiscoreChar,"%i",hiscore);
                 if (pFile != NULL) {
@@ -1772,24 +1774,27 @@ int main(int argc, char *argv[]) {
             grupo->adicionarSistemaParticula(jogador->spriteJogador.position.x, jogador->spriteJogador.position.y, 0, 500, 400);
         }
 
+	// Exibe a pontuacao
         if (jogadorEstaVivo) {
-            // Esta parte precisa de um refactory... Para exibir a pontuação do usuário, só consegui fazer desta maneira:
             sprintf(pontuacao,"%i",pontos);
             #ifdef psp
             pontosSurface = TTF_RenderText_Solid( fontPequena, pontuacao, corBranca );
             #else
             pontosSurface = TTF_RenderText_Solid( font, pontuacao, corBranca );
             #endif
-            SDL_BlitSurface(pontosSurface, NULL, screen->surface, posicaoPontos);
+		pontosRect->x = SCREEN_WIDTH * 0.05 + ((scoreSurface->w - pontosSurface->w) / 2);
+            SDL_BlitSurface(pontosSurface, NULL, screen->surface, pontosRect);
             SDL_FreeSurface(pontosSurface);
         }
 
+	// Exibe a pontuacao maxima
         sprintf(hiscoreChar,"%i",hiscore);
         #ifdef psp
         hiscoreNUMSurface = TTF_RenderText_Solid( fontPequena, hiscoreChar, corBranca );
         #else
         hiscoreNUMSurface = TTF_RenderText_Solid( font, hiscoreChar, corBranca );
         #endif
+	hiscoreNUMRect->x = (SCREEN_WIDTH * 0.75) + ((hiscoreSurface->w - hiscoreNUMRect->w) / 2);
         SDL_BlitSurface(hiscoreNUMSurface, NULL, screen->surface, hiscoreNUMRect);
         SDL_FreeSurface(hiscoreNUMSurface);
 
@@ -1829,17 +1834,16 @@ int main(int argc, char *argv[]) {
                 // 5 = giro curto sentido horario
                 // 6 = giro longo sentido horario
                 // 7 = giro longo sentido anti-horario
-                if (pontos < 30) {
-                    int tipoRand = rand()%3;
-                    switch (tipoRand) {
-                    case 0:
-                        grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
-                        break;
-                    default:
-                        grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
-                        break;
-                    }
-                } else {
+		int tipoRand = rand()%3;
+		switch (tipoRand) {
+			case 0:
+				grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
+			break;
+			default:
+				grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
+			break;
+		}
+                if (pontos > 30) {
                     grupoDeInimigos.criarNovoInimigo(spriteInimigo, rand()%4);
                 }
             } else if (probDeCriarInimigo == 2) {
@@ -1855,18 +1859,20 @@ int main(int argc, char *argv[]) {
 
         // Probabilidade de criar um powerup novo
         int probDeCriarPowerUp = rand() % 3000;
-        if (probDeCriarPowerUp == 1) {
-            PowerUp p = PowerUp(powerUp1Sprite, 0);
-            grupoDePowerUps.adicionar(p);
-        } else if (probDeCriarPowerUp == 2) {
-            if (jogador->velocidade < 4) {
-                PowerUp p = PowerUp(powerUp2Sprite, 1);
-                grupoDePowerUps.adicionar(p);
-            } else {
-                PowerUp p = PowerUp(powerUp1Sprite, 0);
-                grupoDePowerUps.adicionar(p);
-            }
-        }
+	if (!gamePaused) {
+		if (probDeCriarPowerUp == 1) {
+			PowerUp p = PowerUp(powerUp1Sprite, 0);
+			grupoDePowerUps.adicionar(p);
+		} else if (probDeCriarPowerUp == 2) {
+			if (jogador->velocidade < 4) {
+				PowerUp p = PowerUp(powerUp2Sprite, 1);
+				grupoDePowerUps.adicionar(p);
+			} else {
+				PowerUp p = PowerUp(powerUp1Sprite, 0);
+				grupoDePowerUps.adicionar(p);
+			}
+		}
+	}
     }
 
     Mix_FreeChunk(powerup);
@@ -1875,6 +1881,7 @@ int main(int argc, char *argv[]) {
     Mix_FreeChunk(insaneshoot);
     Mix_FreeChunk(laser);
     Mix_FreeChunk(explosion);
+    Mix_FreeChunk(playerExplosion);
     Mix_FreeChunk(speedup);
     #ifdef psp
     #else
