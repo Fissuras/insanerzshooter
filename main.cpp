@@ -28,6 +28,9 @@
 #include <fstream>
 #include <SDL/SDL_mixer.h>
 
+// To compile it for GNU/Debian Linux and Ubuntu, please, replace "res/" with "res/"
+// After that, run the createDebianPkg.sh script. Have fun!
+
 // Constantes de ambiente.. para poder compilar para o PSP e para PC
 //#define psp // descomente esta linha para compilar para o PSP
 
@@ -1519,15 +1522,9 @@ int main(int argc, char *argv[]) {
     Uint16 formato = MIX_DEFAULT_FORMAT; //16 bits stereo
     Mix_OpenAudio( frequencia, formato, canais, buffer );
     Mix_AllocateChannels(MIX_DEFAULT_CHANNELS);
-    #ifdef psp
     Mix_Music *musica = NULL;
     musica = Mix_LoadMUS ( "res/musica.wav" );
     Mix_PlayMusic(musica, -1);
-    #else
-    Mix_Music *musica = NULL;
-    musica = Mix_LoadMUS ( "res/musica.wav" );
-    Mix_PlayMusic(musica, -1);
-    #endif
 
     // Carregando efeitos sonoros
     Mix_Chunk *powerup = NULL;
@@ -1577,9 +1574,9 @@ int main(int argc, char *argv[]) {
     TTF_Font *font = NULL;
     TTF_Init();
     #ifdef psp
-    font = TTF_OpenFont( "FreeSans_bold.ttf", 20 );
+    font = TTF_OpenFont( "res/FreeSans_bold.ttf", 20 );
     #else
-    font = TTF_OpenFont( "FreeSans_bold.ttf", 22 );
+    font = TTF_OpenFont( "res/FreeSans_bold.ttf", 22 );
     #endif
     if (!font) {
         printf("Erro ao carregar a fonte. Está faltando o arquivo FreeSans_bold.ttf?");
@@ -1589,7 +1586,7 @@ int main(int argc, char *argv[]) {
     // Cria uma surface usada para exibir o texto "Press FIRE to start"
     TTF_Font *fontPequena = NULL;
 
-    fontPequena = TTF_OpenFont( "FreeSans_bold.ttf", 18 );
+    fontPequena = TTF_OpenFont( "res/FreeSans_bold.ttf", 18 );
 
     // CORES
     SDL_Color corBranca = { 255, 255, 255 };
@@ -1683,7 +1680,7 @@ int main(int argc, char *argv[]) {
 
     GrupoDeParticulas *grupo = new GrupoDeParticulas();
 
-    fontPequena = TTF_OpenFont( "FreeSans_bold.ttf", 16 );
+    fontPequena = TTF_OpenFont( "res/FreeSans_bold.ttf", 16 );
 
     for (int i=0; i < NUMBER_OF_BACKGROUND_STARS; i++) {
         grupo->adicionarSistemaParticula(rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT, 2, 0, -1);
