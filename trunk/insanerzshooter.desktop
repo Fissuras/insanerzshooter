@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Insanerz Shooter
+Comment=Play a fun old school space shooting game
+Comment[pt_BR]=Jogue um jogo de nave no melhor estilo clássico
+Version=0.5
+Encoding=UTF-8
+Exec=/usr/games/insanerzshooter
+Terminal=false
+Type=Application
+Categories=GNOME;Game;
+StartupNotify=true
+GenericName=Insanerz Shooter
