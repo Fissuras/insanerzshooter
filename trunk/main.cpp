@@ -28,8 +28,8 @@
 #include <fstream>
 #include <SDL/SDL_mixer.h>
 
-// To compile it for GNU/Debian Linux and Ubuntu, please, replace "res/" with "res/"
-// After that, run the createDebianPkg.sh script. Have fun!
+// To compile it for GNU/Debian Linux and Ubuntu, please, replace "res/" with "/usr/share/insanerzshooter/"
+// After that, run the createDebianPkg.sh script. The .deb package will be created. Have fun!
 
 // Constantes de ambiente.. para poder compilar para o PSP e para PC
 //#define psp // descomente esta linha para compilar para o PSP
