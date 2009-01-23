@@ -973,6 +973,7 @@ public:
         adicionar(inimigo);
     }
 
+
     // Verifica se algum dos inimigos foi atingido por um tiro
     // @param tiros objeto do tipo Tiros contendo todos os tiros que serão analisados
     void verificaColisao(Tiros *tiros, GrupoDeParticulas *grupo, Mix_Chunk * explosion) {
@@ -1723,7 +1724,7 @@ int main(int argc, char *argv[]) {
         } else {
             // Desenhando nome do jogo
             for (int i=0; i < 8; i++) {
-                insanerzRect.x = insanerz[i].posicaoChar.x + TITLE_X;
+                insanerzRect.x = insanerz[i ].posicaoChar.x + TITLE_X;
                 insanerzRect.y = insanerz[i].posicaoChar.y + TITLE_Y;
                 SDL_BlitSurface(insanerz[i].surface, NULL, screen->surface, &insanerzRect);
                 insanerz[i].animar();
@@ -1831,18 +1832,22 @@ int main(int argc, char *argv[]) {
                 // 5 = giro curto sentido horario
                 // 6 = giro longo sentido horario
                 // 7 = giro longo sentido anti-horario
-        if (pontos > 30) {
-                grupoDeInimigos.criarNovoInimigo(spriteInimigo, rand()%4);
-        } else {
+                if (pontos > 30) {
+                    int tipoRand = rand()%4;
+                    if (tipoRand == 0) {
+                        grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
+                    } else {
+                        grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
+                    }
+                } else {
+                    int tipoRand = rand()%3;
+                    if (tipoRand == 0) {
+                        grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
+                    } else {
+                        grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
+                    }
+                }
 
-            int tipoRand = rand()%3;
-            if (tipoRand == 0) {
-                grupoDeInimigos.criarNovoInimigo(spriteInimigo3, tipoRand);
-            } else {
-                grupoDeInimigos.criarNovoInimigo(spriteInimigo, tipoRand);
-            }
-
-        }
             } else if (probDeCriarInimigo == 2) {
                 if (pontos > 30 && pontos < 150) {
                     if (rand()%8 == 1) {
