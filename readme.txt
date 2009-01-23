@@ -5,6 +5,23 @@ About
 
 This is a classic shmup 2D, made with SDL.
 
+
+CopyRight
+====================
+
+Insanerz Team - CopyLeft, 2008-2008.
+
+The source-code is released under the GPL 3. You should have received a copy of the GNU General Public License along with Insanerz Shooter. If not, see <http://www.gnu.org/licenses/>.
+
+Graphics and Sounds are released under Creative Commons. You may copy, distribute, display and perform the work and make derivative works.
+
+
+Linux Dependencies
+====================
+
+libsdl-image1.2, libsdl-mixer1.2, libsdl-ttf2.0-0 and libsdl-sound1.2.
+
+
 Changes
 ===================
 v0.5 (23/01/2009):
@@ -43,6 +60,10 @@ v0.1 (someday in 2008):
 
 - First release :)
 
+
+Sony PSP
+===================
+
 ====================
 ----INSTRUCTIONS----
 ====================
@@ -66,15 +87,19 @@ Bugs
 
 - I don't know...
 
-Credits:
+Credits
 ====================
 
-Marcio F. David
-Marcelo Baccelli
+Marcio Frayze David (mfdavid@gmail.com)
+Marcelo Baccelli (batchaki@gmail.com)
 
-------------------------------
+
 Special Thanks
+====================
 
 incacodecdecodec for our job!
 ZX81 the guy who make the pspsdk to virtualbox.
 ps2dev.org for the sdk.
+The Linux MultiMedia Studio developers for creating such a cool application.
+stoned from irc.freenode.org for the GNU/Debian package.
+And you for playing!
