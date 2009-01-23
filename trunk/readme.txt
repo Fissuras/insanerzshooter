@@ -7,6 +7,9 @@ This is a classic shmup 2D, made with SDL.
 
 Changes
 ===================
+v0.5 (23/01/2009):
+
+- Changed: the game difficult has changed.
 
 v0.4 (22/01/2009):
 
