@@ -19,7 +19,15 @@ Graphics and Sounds are released under Creative Commons. You may copy, distribut
 Linux Dependencies
 ====================
 
-libsdl-image1.2, libsdl-mixer1.2, libsdl-ttf2.0-0 and libsdl-sound1.2.
+libsdl-image1.2, libsdl-mixer1.2, libsdl-ttf2.0-0, libsdl-sound1.2 and libsdl-gfx1.2-4.
+
+
+Compiling under Linux
+=====================
+
+Install all dependancies and run:
+g++ main.cpp -lSDLmain -lSDL -lSDL_image -lSDL_ttf -lSDL_mixer -lSDL_gfx -o insanerzshooter
+Ignore the warnings messages.
 
 
 Changes
