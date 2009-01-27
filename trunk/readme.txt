@@ -109,5 +109,4 @@ incacodecdecodec for our job!
 ZX81 the guy who make the pspsdk to virtualbox.
 ps2dev.org for the sdk.
 The Linux MultiMedia Studio developers for creating such a cool application.
-stoned from irc.freenode.org for the GNU/Debian package.
 And you for playing!
