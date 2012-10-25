@@ -173,6 +173,7 @@ void IL_Keyboard::acoesDoTeclado() {
 			if (player->deathTimer->get_ticks() > 5000) {
 				// reiniciando jogo!
 				PLAYER_ALIVE = true;
+				PLAYER_LIVES = 2;
 				player->reiniciar();
 				groupDeEnemys->enemies.clear();
 				groupDePowerUps->powerups.clear();

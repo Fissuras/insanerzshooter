@@ -6,6 +6,7 @@
 	extern int HISCORE;
 	extern bool PLAYER_ALIVE;
 	extern bool GAME_PAUSED;
+	extern int PLAYER_LIVES;
 
 	extern int SCREEN_WIDTH;
 	extern int SCREEN_HEIGHT;

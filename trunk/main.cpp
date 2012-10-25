@@ -14,6 +14,10 @@
     You should have received a copy of the GNU General Public License
     along with Insanerz Shooter.  If not, see <http://www.gnu.org/licenses/>. */
 
+// Constantes de ambiente.. para poder compilar para o PSP e para PC
+//#define psp // descomente esta linha para compilar para o PSP
+//#define wii //descomente esta linha para compilar para o Wii
+
 #include <stdlib.h>
 #include <iostream>
 #include <string>
@@ -22,6 +26,12 @@
 #include <string>
 #include <math.h>
 #include <fstream>
+
+#ifdef wii
+	#include <gccore.h>
+	#include <wiiuse/wpad.h>
+	#include <fat.h>
+#endif
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
@@ -55,9 +65,6 @@
 // To compile it for GNU/Debian Linux and Ubuntu, please, replace "res/" with "/usr/share/insanerzshooter/"
 // After that, run the createDebianPkg.sh script. The .deb package will be created. Have fun!
 
-// Constantes de ambiente.. para poder compilar para o PSP e para PC
-//#define psp // descomente esta linha para compilar para o PSP
-
 #ifdef psp
     #include <pspkernel.h>
     #include <pspdebug.h>
@@ -70,9 +77,7 @@
     #else
     PSP_MODULE_INFO("InsanerzShooter", 0x1000, 1, 1);
     #endif
-#endif
 
-#ifdef psp
     int exit_callback(int arg1, int arg2, void *common) {
         sceKernelExitGame();
         return 0;
@@ -116,7 +121,7 @@ double Abs(double number) {
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
 
     #ifdef psp
 	    scePowerSetClockFrequency(333, 333, 166);
@@ -174,10 +179,10 @@ int main(int argc, char *argv[]) {
     IL_Sprite spriteEnemy3("res/enemy3.png", 2);
 
     // Cria um backgroundGroup inicial de enemies
-    EnemyGroup groupDeEnemys = EnemyGroup();
+    EnemyGroup enemiesGroup = EnemyGroup();
 
     // Cria um backgroundGroup inicial de powerups vazio
-    PowerUpsGroup groupDePowerUps = PowerUpsGroup(player);
+    PowerUpsGroup powerupsGroup = PowerUpsGroup(player);
     IL_Sprite powerUp1Sprite("res/powerup1.png", 2);
     IL_Sprite powerUp2Sprite("res/powerup2.png", 2);
 
@@ -185,7 +190,7 @@ int main(int argc, char *argv[]) {
     IL_Bullets *bullets = new IL_Bullets();
 
 	// Cria objeto responsável por controlar o teclado
-    IL_Keyboard teclado = IL_Keyboard(screen, player, bullets, &groupDeEnemys, &groupDePowerUps, laser);
+    IL_Keyboard teclado = IL_Keyboard(screen, player, bullets, &enemiesGroup, &powerupsGroup, laser);
 
     // Carrega a fonte em 2 tamanhos diferentes
     TTF_Font *font = TTF_OpenFont("res/FreeSans_bold.ttf", 20);
@@ -264,11 +269,11 @@ int main(int argc, char *argv[]) {
     shooter[6] = IL_AnimatedText("R", 180, 0, false, font);
 
     ParticleGroup *backgroundGroup = new ParticleGroup();
-    for (int i=0; i < NUMBER_OF_BACKGROUND_STARS; i++) {
+    for(int i=0; i < NUMBER_OF_BACKGROUND_STARS; i++) {
         backgroundGroup->addParticleSystem(rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT, 2, 0, -1);
     }
 
-    while (true) {
+    while(true) {
 
         systemTicks = SDL_GetTicks();
         nextFrameTicks = systemTicks + 8;
@@ -276,9 +281,9 @@ int main(int argc, char *argv[]) {
         screen->limpar();// Pinta tudo de preto
         backgroundGroup->draw(screen->surface);// desenha as particulas
         screen->drawBarraFirePower(player);// Desenha a parte superior da tela
-        groupDePowerUps.actAndDraw(screen->surface);
-        groupDeEnemys.checkCollision(bullets, backgroundGroup, explosion);// Verifica se player matou algum enemy
-        groupDeEnemys.actAndDraw(screen->surface, backgroundGroup);// Move os enemies e desenha eles na tela
+        powerupsGroup.actAndDraw(screen->surface);
+        enemiesGroup.checkCollision(bullets, backgroundGroup, explosion);// Verifica se player matou algum enemy
+        enemiesGroup.actAndDraw(screen->surface, backgroundGroup);// Move os enemies e desenha eles na tela
 
         if (!GAME_PAUSED) {
             bullets->updatePositions();// Move os bullets
@@ -287,8 +292,12 @@ int main(int argc, char *argv[]) {
         bullets->draw(screen->surface);// Desenha bullets na tela
         teclado.verificaTeclasPressionadas();// Verifica quais teclas estão sendo pressionadas
 
+		if (PLAYER_SCORE % 30) {
+			PLAYER_LIVES++;
+		}
+
         if (PLAYER_ALIVE) {
-            groupDePowerUps.checkCollision(powerup, doubleshoot, tripleshoot, insaneshoot, speedup);
+            powerupsGroup.checkCollision(powerup, doubleshoot, tripleshoot, insaneshoot, speedup);
             screen->draw(player->playerSprite);// Desenha player na tela
             // probabilidade de criar particula de "fogo" da nave
             int probDeCriarParticulaDeFogo = 6 - ((int) player->speed);// a prob de criar particula de fogo será proporcional a vel da nave
@@ -332,21 +341,25 @@ int main(int argc, char *argv[]) {
         SDL_BlitSurface(hiscoreSurface, NULL, screen->surface, &hiscoreRect);
 
 		// Verifica se o player foi atingido
-        if (PLAYER_ALIVE == true && groupDeEnemys.checkCollision(player)) {
-            Mix_PlayChannel(-1, playerExplosion, 0);
-            player->deathTimer->start();
-            PLAYER_ALIVE = false;
-            if (PLAYER_SCORE > HISCORE) {
-                HISCORE = PLAYER_SCORE;
-				// Adiciona a pontuacao maxima no arquivo de highscore
-                FILE *pFile = fopen("hiscore.dat", "w+");
-                sprintf(hiscoreChar,"%i",HISCORE);
-                if (pFile != NULL) {
-                    fputs(hiscoreChar, pFile);
-                    fclose(pFile);
-                }
-            }
-            backgroundGroup->addParticleSystem(player->playerSprite.position.x, player->playerSprite.position.y, 0, 500, 400);
+        if (PLAYER_ALIVE == true && enemiesGroup.checkCollision(player)) {
+			if (PLAYER_LIVES > 0) {
+				PLAYER_LIVES--;
+			} else {
+		        Mix_PlayChannel(-1, playerExplosion, 0);
+		        player->deathTimer->start();
+		        PLAYER_ALIVE = false;
+		        if (PLAYER_SCORE > HISCORE) {
+		            HISCORE = PLAYER_SCORE;
+					// Adiciona a pontuacao maxima no arquivo de highscore
+		            FILE *pFile = fopen("hiscore.dat", "w+");
+		            sprintf(hiscoreChar,"%i",HISCORE);
+		            if (pFile != NULL) {
+		                fputs(hiscoreChar, pFile);
+		                fclose(pFile);
+		            }
+		        }
+		        backgroundGroup->addParticleSystem(player->playerSprite.position.x, player->playerSprite.position.y, 0, 500, 400);
+			}
         }
 
 		// Exibe a pontuacao
@@ -380,22 +393,22 @@ int main(int argc, char *argv[]) {
         SDL_Flip(screen->surface);
 
         // se tiver menos do que 50 enemies, tem certa probabilidade de criar um novo enemy
-        if (groupDeEnemys.enemies.size() < 50 && !GAME_PAUSED) {
-            if (PLAYER_SCORE < 100 && groupDeEnemys.enemies.size() < 30) {
+        if (enemiesGroup.enemies.size() < 50 && !GAME_PAUSED) {
+            if (PLAYER_SCORE < 100 && enemiesGroup.enemies.size() < 30) {
                 probDeCriarEnemy = rand() % 100;
-            } else if (PLAYER_SCORE < 300 && groupDeEnemys.enemies.size() < 30) {
+            } else if (PLAYER_SCORE < 300 && enemiesGroup.enemies.size() < 30) {
                 probDeCriarEnemy = rand() % 90;
-            } else if (PLAYER_SCORE < 500 && groupDeEnemys.enemies.size() < 30) {
+            } else if (PLAYER_SCORE < 500 && enemiesGroup.enemies.size() < 30) {
                 probDeCriarEnemy = rand() % 70;
-            } else if (PLAYER_SCORE < 1000 && groupDeEnemys.enemies.size() < 30) {
+            } else if (PLAYER_SCORE < 1000 && enemiesGroup.enemies.size() < 30) {
                 probDeCriarEnemy = rand() % 50;
-            } else if (PLAYER_SCORE < 2000 && groupDeEnemys.enemies.size() < 35) {
+            } else if (PLAYER_SCORE < 2000 && enemiesGroup.enemies.size() < 35) {
                 probDeCriarEnemy = rand() % 30;
-            } else if (PLAYER_SCORE < 3000 && groupDeEnemys.enemies.size() < 40) {
+            } else if (PLAYER_SCORE < 3000 && enemiesGroup.enemies.size() < 40) {
                 probDeCriarEnemy = rand() % 30;
-            } else if (PLAYER_SCORE < 4000 && groupDeEnemys.enemies.size() < 45) {
+            } else if (PLAYER_SCORE < 4000 && enemiesGroup.enemies.size() < 45) {
                 probDeCriarEnemy = rand() % 25;
-            } else if (groupDeEnemys.enemies.size() < 50) {
+            } else if (enemiesGroup.enemies.size() < 50) {
                 probDeCriarEnemy = rand() % 10;
             }
 
@@ -411,26 +424,26 @@ int main(int argc, char *argv[]) {
                 if (PLAYER_SCORE > 30) {
                     int typeRand = rand()%4;
                     if (typeRand == 0) {
-                        groupDeEnemys.createNewEnemy(spriteEnemy3, typeRand);
+                        enemiesGroup.createNewEnemy(spriteEnemy3, typeRand);
                     } else {
-                        groupDeEnemys.createNewEnemy(spriteEnemy, typeRand);
+                        enemiesGroup.createNewEnemy(spriteEnemy, typeRand);
                     }
                 } else {
                     int typeRand = rand()%3;
                     if (typeRand == 0) {
-                        groupDeEnemys.createNewEnemy(spriteEnemy3, typeRand);
+                        enemiesGroup.createNewEnemy(spriteEnemy3, typeRand);
                     } else {
-                        groupDeEnemys.createNewEnemy(spriteEnemy, typeRand);
+                        enemiesGroup.createNewEnemy(spriteEnemy, typeRand);
                     }
                 }
 
             } else if (probDeCriarEnemy == 2) {
                 if (PLAYER_SCORE > 30 && PLAYER_SCORE < 150) {
                     if (rand()%8 == 1) {
-                        groupDeEnemys.createNewEnemy(spriteEnemy2, 4 + rand()%2);
+                        enemiesGroup.createNewEnemy(spriteEnemy2, 4 + rand()%2);
                     }
                 } else if (PLAYER_SCORE > 150) {
-                    groupDeEnemys.createNewEnemy(spriteEnemy2, 4 + rand()%4);
+                    enemiesGroup.createNewEnemy(spriteEnemy2, 4 + rand()%4);
                 }
             }
         }
@@ -440,14 +453,14 @@ int main(int argc, char *argv[]) {
 		if (!GAME_PAUSED) {
 			if (probDeCriarPowerUp == 1) {
 				PowerUp p = PowerUp(powerUp1Sprite, 0);
-				groupDePowerUps.add(p);
+				powerupsGroup.add(p);
 			} else if (probDeCriarPowerUp == 2) {
 				if (player->speed < 4) {
 					PowerUp p = PowerUp(powerUp2Sprite, 1);
-					groupDePowerUps.add(p);
+					powerupsGroup.add(p);
 				} else {
 					PowerUp p = PowerUp(powerUp1Sprite, 0);
-					groupDePowerUps.add(p);
+					powerupsGroup.add(p);
 				}
 			}
 		}
