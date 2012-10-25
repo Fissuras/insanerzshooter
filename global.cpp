@@ -9,6 +9,7 @@ int PLAYER_SCORE = 0;
 int HISCORE = 0;
 bool PLAYER_ALIVE = false;
 bool GAME_PAUSED = false;
+int PLAYER_LIVES = 2;
 
 #ifdef PSPFW3X
 	int SCREEN_WIDTH = 480;

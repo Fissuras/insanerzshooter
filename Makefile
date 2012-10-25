@@ -1,71 +1,137 @@
-#LIBS = -lSDL_ttf -lfreetype -lSDL_mixer -lvorbisidec -lSDL_image -lpng -lz -ljpeg `sdl-config --libs` -lSDLmain
+#---------------------------------------------------------------------------------
+# Clear the implicit built in rules
+#---------------------------------------------------------------------------------
+.SUFFIXES:
+#---------------------------------------------------------------------------------
+ifeq ($(strip $(DEVKITPPC)),)
+$(error "Please set DEVKITPPC in your environment. export DEVKITPPC=<path to>devkitPPC")
+endif
 
-#SRCS=global.cpp timer.cpp il_position.cpp il_sprite.cpp bullet.cpp enemy.cpp enemygroup.cpp il_animatedtext.cpp il_bullets.cpp particula.cpp particlessystem.cpp particlegroup.cpp powerup.cpp powerupsgroup.cpp il_keyboard.cpp il_player.cpp il_screen.cpp main.cpp
+include $(DEVKITPPC)/wii_rules
 
-# The following defines a variable named "program_NAME" with a value of "myprogram". By convention,
-# a lowercase prefix (in this case "program") and an uppercased suffix (in this case "NAME"), separated
-# by an underscore is used to name attributes for a common element. Think of this like
-# using program.NAME, program.C_SRCS, etc. There are no structs in Make, so we use this convention
-# to keep track of attributes that all belong to the same target or program.  
-program_NAME := InsanerzShooter
+#---------------------------------------------------------------------------------
+# TARGET is the name of the output
+# BUILD is the directory where object files & intermediate files will be placed
+# SOURCES is a list of directories containing source code
+# INCLUDES is a list of directories containing extra header files
+#---------------------------------------------------------------------------------
+TARGET		:=	$(notdir $(CURDIR))
+BUILD		:=	build
+SOURCES		:=	source
+DATA		:=	data  
+INCLUDES	:=
 
-# This is a list of all files in the current directory ending in ".c". The $(wildcard) is a globbing expression. This similar to how the shell expands *.c
-program_C_SRCS := $(wildcard *.c)
+#---------------------------------------------------------------------------------
+# options for code generation
+#---------------------------------------------------------------------------------
 
-# This is a list of all files in the current directory ending in ".cpp". The $(wildcard) is used to expand *.cpp to match all files ending in *.cpp in the current directory.
-program_CXX_SRCS := $(wildcard *.cpp)
+CFLAGS	= -g -O2 -Wall $(MACHDEP) $(INCLUDE) -Dwii -Wno-write-strings -Wuninitialized
+CXXFLAGS	=	$(CFLAGS)
 
-# This names all C object files that we are going to build. It uses a substitution expression, which simply replaces ".c" with ".o"
-program_C_OBJS := ${program_C_SRCS:.c=.o}
+LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 
-# This names all C++ object files that we are going to build. It simply uses text substitution to replace ".cpp" with ".o" for all the ".cpp" source files.
-program_CXX_OBJS := ${program_CXX_SRCS:.cpp=.o}
+#---------------------------------------------------------------------------------
+# any extra libraries we wish to link with the project
+#---------------------------------------------------------------------------------
+LIBS :=	-lSDL_net -lSDL_ttf -lSDL_gfx -lSDL_mixer -lSDL_image -lsmpeg \
+		-lSDL -ljpeg -lpng -lfreetype -lvorbisidec \
+		-lz -lfat -lwiiuse -lbte -lwiikeyboard -logc -lm
 
-# This is simply a list of all the ".o" files, both from C and C++ source files.
-program_OBJS := $(program_C_OBJS) $(program_CXX_OBJS)
+#---------------------------------------------------------------------------------
+# list of directories containing libraries, this must be the top level containing
+# include and lib
+#---------------------------------------------------------------------------------
+LIBDIRS	:=	$(DEVKITPRO)/portlibs/ppc
 
-# This is a place holder. If you used program_INCLUDE_DIRS := ./include, then headers in "./include" would be found with #include <>
-program_INCLUDE_DIRS :=
+#---------------------------------------------------------------------------------
+# no real need to edit anything past this point unless you need to add additional
+# rules for different file extensions
+#---------------------------------------------------------------------------------
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+#---------------------------------------------------------------------------------
 
-# This is a place holder. If you used program_LIBRARY_DIRS := ./lib, then libraries in "./lib" would be found by the linker.
-program_LIBRARY_DIRS :=
+export OUTPUT	:=	$(CURDIR)/$(TARGET)
 
-# This is a place holder. If you used program_LIBRARIES := boost_signals, then libboost_signals would be linked in.
-program_LIBRARIES := SDL_ttf freetype SDL_mixer SDL_image png z jpeg
+export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
 
-# This adds -I$(includedir) for every include directory given in $(program_INCLUDE_DIRS)... so if you used ./include, it would expand to -I./include
-# Remember that CPPFLAGS is the C preprocessor flags, so anything that compiles a C or C++ source file into an object file will use this flag.
-CPPFLAGS += $(foreach includedir,$(program_INCLUDE_DIRS),-I$(includedir))
+export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
-# This adds -L$(librarydir) for every library directory given in $(program_LIBRARY_DIRS)... so if you used ./lib, it would expand to -L./lib
-# Since the LDFLAGS are used when linking, this will cause the appropriate flags to be passed to the linker.
-LDFLAGS += $(foreach librarydir,$(program_LIBRARY_DIRS),-L$(librarydir))
+#---------------------------------------------------------------------------------
+# automatically build a list of object files for our project
+#---------------------------------------------------------------------------------
+CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+sFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
+BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
-# This adds -l$(library) for every library given in $(program_LIBRARIES), so if you used boost_signals, it would expand to -lboost_signals
-LDFLAGS += $(foreach library,$(program_LIBRARIES),-l$(library))
+#---------------------------------------------------------------------------------
+# use CXX for linking C++ projects, CC for standard C
+#---------------------------------------------------------------------------------
+ifeq ($(strip $(CPPFILES)),)
+	export LD	:=	$(CC)
+else
+	export LD	:=	$(CXX)
+endif
 
-# This indicates that "all", "clean", and "distclean" are "phony targets". Therefore, "make all", "make clean", and "make distclean"
-# should execute the content of their build rules, even if a newer file named "all", "clean", or "distclean" exists.
-.PHONY: all clean distclean
+export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
+					$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) \
+					$(sFILES:.s=.o) $(SFILES:.S=.o)
 
-# This is first build rule in the makefile, and so executing "make" and executing "make all" are the same.
-# The target simply depends on $(program_NAME), which expands to "myprogram", and that target is given below:
-all: $(program_NAME)
+#---------------------------------------------------------------------------------
+# build a list of include paths
+#---------------------------------------------------------------------------------
+export INCLUDE	:=	$(foreach dir,$(INCLUDES), -iquote $(CURDIR)/$(dir)) \
+					$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+					-I$(CURDIR)/$(BUILD) \
+					-I$(LIBOGC_INC)
 
-# The program depends on the object files (which are automatically built using the predefined build rules... nothing needs to be given explicitly for them).
-# The build rule $(LINK.cc) is used to link the object files and output a file with the same name as the program. Note that LINK.cc makes use of CXX,
-# CXXFLAGS, LDFLAGS, etc. On my own system LINK.cc is defined as: $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGET_ARCH),
-# so if CXXFLAGS, CPPFLAGS, LDFLAGS, and TARGET_ARCH are undefined, but CXX is g++, then it will expand to g++ $(program_OBJS) -o $(program_NAME).
-$(program_NAME): $(program_OBJS)
-	$(LINK.cc) $(program_OBJS) -o $(program_NAME)
+#---------------------------------------------------------------------------------
+# build a list of library paths
+#---------------------------------------------------------------------------------
+export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
+					-L$(LIBOGC_LIB)
 
-# Note that the line that starts with $(LINK.cc) is indented with a single tab. This is very important! Otherwise, it will not work.
+export OUTPUT	:=	$(CURDIR)/$(TARGET)
+.PHONY: $(BUILD) clean
 
-# This target removes the built program and the generated object files. The @ symbol indicates that the line should be run silently, and the -
-# symbol indicates that errors should be ignored (i.e., if the file already doesn't exist, we don't really care, and we should continue executing subsequent commands)
+#---------------------------------------------------------------------------------
+$(BUILD):
+	@[ -d $@ ] || mkdir -p $@
+	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+
+#---------------------------------------------------------------------------------
 clean:
-	@- $(RM) $(program_NAME)
-	@- $(RM) $(program_OBJS)
+	@echo clean ...
+	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol
 
-# The distclean target depends on the clean target (so executing distclean will cause clean to be executed), but we don't add anything else.
-distclean: clean
+#---------------------------------------------------------------------------------
+run:
+	wiiload $(TARGET).dol
+
+
+#---------------------------------------------------------------------------------
+else
+
+DEPENDS	:=	$(OFILES:.o=.d)
+
+#---------------------------------------------------------------------------------
+# main targets
+#---------------------------------------------------------------------------------
+$(OUTPUT).dol: $(OUTPUT).elf
+$(OUTPUT).elf: $(OFILES)
+
+#---------------------------------------------------------------------------------
+# This rule links in binary data with the .jpg extension
+#---------------------------------------------------------------------------------
+%.jpg.o	:	%.jpg
+#---------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	$(bin2o)
+
+-include $(DEPENDS)
+
+#---------------------------------------------------------------------------------
+endif
+#---------------------------------------------------------------------------------
