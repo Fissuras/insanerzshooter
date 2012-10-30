@@ -1,23 +1,24 @@
 #ifndef particlegroup_h
 #define particlegroup_h
-	#include "particlessystem.h"
 
-	// ParticleGroup
-	class ParticleGroup {
+#include "particlessystem.h"
 
-	public:
+class ParticleGroup {
 
-		vector<ParticlesSystem> group;
+public:
 
-		ParticleGroup() {}
+	vector<ParticlesSystem> group;
 
-		~ParticleGroup() {
-		    group.clear();
-		}
+	ParticleGroup() {}
 
-		void addParticleSystem(int x, int y, int type, int quantidadeDeParticulas, int tempoDeVidaMaximo);
-	
-		void draw(SDL_Surface *tela);
+	~ParticleGroup() {
+	    group.clear();
+	}
 
-	};
+	void addParticleSystem(int x, int y, int type, int numberOfParticles, int maxLifeTime);
+
+	void draw(SDL_Surface *tela);
+
+};
+
 #endif

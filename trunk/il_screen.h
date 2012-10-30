@@ -1,90 +1,73 @@
 #ifndef il_screen_h
 #define il_screen_h
-	#include "global.h"
+
+#include "global.h"
+#ifdef ANDROID
+	#include "SDL_image.h"
+#else
 	#include <SDL/SDL_image.h>
-	#include "timer.h"
-	#include "il_sprite.h"
-	#include "il_player.h"
-	// Classe responvável por exibir as coisas na tela.
-	class IL_Screen {
+#endif
+#include "timer.h"
+#include "il_sprite.h"
+#include "il_player.h"
 
-	public:
+class IL_Screen {
 
-		// surface que será exibida ao usuário
-		SDL_Surface *surface;
+public:
 
-		// contador de frames
-		int frame;
+	SDL_Surface *surface;
+	int frame;
+	Uint32 whiteColor;
+	Uint32 yellowColor;
+	Uint32 greenColor;
+	Uint32 redColor;
+	Uint32 blueColor;
 
-		Uint32 corBranca;
-		Uint32 corAmarela;
-		Uint32 corVerde;
-		Uint32 corVermelha;
-		Uint32 corAzul;
-		bool estaEmFullScreen;
+	Timer *fps;
 
-		// Timer controlador do frames por segundo
-		Timer *fps;
+	IL_Screen() {
+		frame = 0;
+	    fps = new Timer();
+	    fps->start();
 
-		IL_Screen() {
-		    estaEmFullScreen = false;
-		}
+	    if ( SDL_Init(SDL_INIT_EVERYTHING) < 0 ) {
+	        fprintf(stderr,"Impossible to initialize SDL: %s\n", SDL_GetError());
+	        exit(-1);
+	    }
 
-		~IL_Screen() {
-		    delete fps;
-		    fps = NULL;
-		}
+        #ifdef PSP
+        	surface = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 16, SDL_SWSURFACE);
+		#elif ANDROID
+        	surface = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 0, SDL_SWSURFACE|SDL_FULLSCREEN);
+        #else
+        	surface = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 16, SDL_DOUBLEBUF | SDL_HWSURFACE);
+        #endif
 
-		// Construtor
-		// @param telaCheia caso true, o jogo será executado em fullscreen.
-		// @param resolucaoWidth da tela (padrao = 800)
-		// @param resolucaoHeight da tela (padrao = 600)
-		// @param bits de resolução (padrao = 32)
-		IL_Screen(bool telaCheia, int resolucaoWidth = SCREEN_WIDTH, int resolucaoHeight = SCREEN_HEIGHT, int bits = 32) {
+	    if ( !surface ) {
+	        fprintf(stderr, "Impossible to initialize video: %s\n", SDL_GetError());
+	        exit(-1);
+	    }
 
-		    frame = 0;
-		    fps = new Timer();
-		    fps->start();
+	    whiteColor = SDL_MapRGB( surface->format, 0xFF, 0xFF, 0xFF);
+	    yellowColor = SDL_MapRGB( surface->format, 0xFF, 0xFF, 0);
+	    greenColor = SDL_MapRGB( surface->format, 0, 0xFF, 0);
+	    redColor = SDL_MapRGB( surface->format, 0xFF, 0, 0);
+	    blueColor = SDL_MapRGB( surface->format, 0, 0x22, 0xFF);
+	}
 
-		    if ( SDL_Init(SDL_INIT_EVERYTHING) < 0 ) {
-		        fprintf(stderr,"Não foi possível inicializar a SDL: %s\n", SDL_GetError());
-		        exit(-1);
-		    }
+	~IL_Screen() {
+	    delete fps;
+	    fps = NULL;
+	}
 
-		    /* Setando resolução */
-		    if (telaCheia == true) {
-		        surface = SDL_SetVideoMode(resolucaoWidth, resolucaoHeight, bits, SDL_DOUBLEBUF | SDL_FULLSCREEN);
-		    } else {
-		        #ifdef psp
-		        surface = SDL_SetVideoMode(resolucaoWidth, resolucaoHeight, bits, SDL_SWSURFACE);
-		        #else
-		        surface = SDL_SetVideoMode(resolucaoWidth, resolucaoHeight, bits, SDL_DOUBLEBUF | SDL_HWSURFACE);
-		        #endif
-		    }
+	void draw(IL_Sprite &sprite);
 
-		    if ( !surface ) {
-		        fprintf(stderr, "Não foi possível inicializar modo de vídeo %s\n", SDL_GetError());
-		        exit(-1);
-		    }
+	void clean();
 
-		    corBranca = SDL_MapRGB( surface->format, 0xFF, 0xFF, 0xFF);
-		    corAmarela = SDL_MapRGB( surface->format, 0xFF, 0xFF, 0);
-		    corVerde = SDL_MapRGB( surface->format, 0, 0xFF, 0);
-		    corVermelha = SDL_MapRGB( surface->format, 0xFF, 0, 0);
-		    corAzul = SDL_MapRGB( surface->format, 0, 0x22, 0xFF);
-		    estaEmFullScreen = telaCheia;
+	void drawHeader();
 
-		}
+	void drawFirePowerBar(IL_Player *player);
 
-		void draw(IL_Sprite &sprite);
+};
 
-		void atualizar();
-
-		void limpar();
-
-		void drawHeader();
-
-		void drawBarraFirePower(IL_Player *player);
-
-	};
 #endif

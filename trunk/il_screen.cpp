@@ -7,58 +7,44 @@ void IL_Screen::draw(IL_Sprite &sprite) {
 	SDL_BlitSurface(sprite.surface, NULL, surface, &rect);
 }
 
-void IL_Screen::atualizar() {
-	fps->start();
-	frame++;
-	if ( fps->get_ticks() < 1000 / FRAMES_PER_SECOND ) {
-		//Sleep the remaining frame time
-		SDL_Delay( ( 1000 / FRAMES_PER_SECOND ) - fps->get_ticks());
-	}
-}
-
-void IL_Screen::limpar() {
+void IL_Screen::clean() {
 	SDL_FillRect(surface, NULL, 0);
 }
 
 void IL_Screen::drawHeader() {
-	SDL_Rect posicao = SDL_Rect();
-	posicao.x = 0;
-	posicao.y = 0;
+	SDL_Rect headerPosition = SDL_Rect();
+	headerPosition.x = 0;
+	headerPosition.y = 0;
 
-	#ifdef psp
-	posicao.h = 30;
+	#ifdef PSP
+		headerPosition.h = 30;
+		headerPosition.y = 30;
 	#else
-	posicao.h = 40;
+		headerPosition.h = 40;
+		headerPosition.y = 40;
 	#endif
 
-	posicao.w = SCREEN_WIDTH;
-	SDL_FillRect(surface, &posicao, corAzul);
+	headerPosition.w = SCREEN_WIDTH;
+	SDL_FillRect(surface, &headerPosition, blueColor);
 
-	#ifdef psp
-	posicao.y = 30;
-	#else
-	posicao.y = 40;
-	#endif
-
-	posicao.h = 1;
-	posicao.w = SCREEN_WIDTH;
-	SDL_FillRect(surface, &posicao, corBranca);
+	headerPosition.h = 1;
+	headerPosition.w = SCREEN_WIDTH;
+	SDL_FillRect(surface, &headerPosition, whiteColor);
 }
 
-void IL_Screen::drawBarraFirePower(IL_Player *player) {
-	SDL_Rect posicao = SDL_Rect();
+void IL_Screen::drawFirePowerBar(IL_Player *player) {
+	SDL_Rect firepowerbarPosition = SDL_Rect();
 	if (PLAYER_ALIVE) {
-		// desenhando a barra do fire power
-		posicao.x = SCREEN_WIDTH * 0.4;
-		posicao.y = 30;
-		posicao.h = 4;
-		posicao.w = player->bulletNumber;
+		firepowerbarPosition.x = SCREEN_WIDTH * 0.4;
+		firepowerbarPosition.y = 30;
+		firepowerbarPosition.h = 4;
+		firepowerbarPosition.w = player->bulletNumber;
 		if (player->bulletNumber <= 20) {
-			SDL_FillRect(surface, &posicao, corVermelha);
+			SDL_FillRect(surface, &firepowerbarPosition, redColor);
 		} else if (player->bulletNumber <= 80) {
-			SDL_FillRect(surface, &posicao, corAmarela);
+			SDL_FillRect(surface, &firepowerbarPosition, yellowColor);
 		} else {
-			SDL_FillRect(surface, &posicao, corVerde);
+			SDL_FillRect(surface, &firepowerbarPosition, greenColor);
 		}
 	}
 }

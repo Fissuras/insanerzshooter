@@ -1,34 +1,31 @@
 #ifndef il_bullets_h
 #define il_bullets_h
-	#include "global.h"
-	#include "bullet.h"
-	using namespace std;
-	using std::vector;
 
-	// Um conjunto de bullets, onde todos tem a mesma imagem/surface
-	class IL_Bullets {
+#include "global.h"
+#include "bullet.h"
+using namespace std;
+using std::vector;
 
-	public:
+class IL_Bullets {
 
-		vector<Bullet> bullets;     // vetor onde os bullets serão armazenados
-		IL_Sprite spriteTiro;   // Sprite representando os bullets
+public:
 
-		// Construtor padrão
-		IL_Bullets() {
-		}
+	vector<Bullet> bullets;
+	IL_Sprite spriteTiro;
 
-		~IL_Bullets() {
-		    bullets.clear();
-		}
+	IL_Bullets() {
+	}
 
-		// Cria um novo bullet e o armazena no vetor de bullets
-		void novoTiro(int gunSpeed, int x, int y, int type);
+	~IL_Bullets() {
+	    bullets.clear();
+	}
 
-		// Desenha os bullets na tela/surface
-		void draw(SDL_Surface *tela);
+	void newShot(int gunSpeed, int x, int y, int type);
 
-		// Move todos os bullets para cima
-		void updatePositions();
+	void draw(SDL_Surface *tela);
 
-	};
+	void updatePositions();
+
+};
+
 #endif

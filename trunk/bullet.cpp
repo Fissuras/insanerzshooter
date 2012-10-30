@@ -1,5 +1,4 @@
 #include "bullet.h"
-#include "global.h"
 
 void Bullet::draw(SDL_Surface *tela) {
 
@@ -23,14 +22,14 @@ void Bullet::draw(SDL_Surface *tela) {
 
 void Bullet::updatePosition() {
 	if (!GAME_PAUSED) {
-		// bullet para frente centralizado
+		// forward bullet
 		if (type ==0) {
 			position.y = position.y - 5;
-			// bullet para frente esquerda
+			// left forward bullet
 		} else if (type ==1) {
 			position.x = position.x - 1;
 			position.y = position.y - 5;
-			// bullet para direita
+			// right forward bullet
 		} else if (type ==2) {
 			position.x = position.x + 1;
 			position.y = position.y - 5;

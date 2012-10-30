@@ -14,9 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with Insanerz Shooter.  If not, see <http://www.gnu.org/licenses/>. */
 
-// Constantes de ambiente.. para poder compilar para o PSP e para PC
-//#define psp // descomente esta linha para compilar para o PSP
-//#define wii //descomente esta linha para compilar para o Wii
+// To compile it for GNU/Debian Linux and Ubuntu, please, replace "data/" with "/usr/share/insanerzshooter/"
+// After that, run the createDebianPkg.sh script. The .deb package will be created. Have fun!
 
 #include <stdlib.h>
 #include <iostream>
@@ -27,16 +26,33 @@
 #include <math.h>
 #include <fstream>
 
-#ifdef wii
+#ifdef WII
 	#include <gccore.h>
-	#include <wiiuse/wpad.h>
+	#include <WIIuse/wpad.h>
 	#include <fat.h>
 #endif
 
-#include <SDL/SDL.h>
-#include <SDL/SDL_image.h>
-#include <SDL/SDL_ttf.h>
-#include <SDL/SDL_mixer.h>
+#ifdef ANDROID
+	#include "SDL.h"
+	#include "SDL_image.h"
+	#include "SDL_ttf.h"
+	#include "SDL_mixer.h"
+#else
+	#include <SDL/SDL.h>
+	#include <SDL/SDL_image.h>
+	#include <SDL/SDL_ttf.h>
+	#include <SDL/SDL_mixer.h>
+#endif
+
+#ifdef ANDROID
+    #define DIR_CUR "/sdcard/"
+#else
+    #define DIR_CUR ""
+#endif
+
+#define DIR_SEP "/"
+#define DATAFILE(X)     DIR_CUR "data" DIR_SEP X
+#define	FRAMES_PER_SEC	60
 
 #include "global.h"
 
@@ -47,7 +63,7 @@
 #include "bullet.h"
 #include "il_bullets.h"
 
-#include "particula.h"
+#include "particle.h"
 #include "particlegroup.h"
 #include "particlessystem.h"
 
@@ -55,17 +71,14 @@
 #include "enemygroup.h"
 
 #include "il_animatedtext.h"
-#include "il_keyboard.h"
+#include "il_inputhandle.h"
 #include "il_player.h"
 #include "il_screen.h"
 
 #include "powerup.h"
 #include "powerupsgroup.h"
 
-// To compile it for GNU/Debian Linux and Ubuntu, please, replace "res/" with "/usr/share/insanerzshooter/"
-// After that, run the createDebianPkg.sh script. The .deb package will be created. Have fun!
-
-#ifdef psp
+#ifdef PSP
     #include <pspkernel.h>
     #include <pspdebug.h>
     #include <pspsdk.h>
@@ -85,231 +98,251 @@
 
     int CallbackThread(SceSize args, void *argp) {
         int cbid;
-
         cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
         sceKernelRegisterExitCallback(cbid);
         sceKernelSleepThreadCB();
-
         return 0;
     }
 
     int SetupCallbacks(void) {
         int thid = 0;
         thid = sceKernelCreateThread("update_thread", CallbackThread, 0x11, 0xFA0, 0, 0);
-
         if (thid >= 0) {
             sceKernelStartThread(thid, 0, 0);
         }
-
         return thid;
     }
 #endif
 
-void writetofile(char msg[], int tecla) {
-    FILE* err = fopen("errorlog.txt", "a");
-    fprintf(err, "%s %i\n", msg, tecla);
-    fclose(err);
-}
+void waitFrame(void) {
+	static Uint32 next_tick = 0;
+	Uint32 this_tick;
 
-// Método criado para calcular o valor absoluto (ou seja, sem o sinal) de um número
-// @param numero número a ser avaliado
-double Abs(double number) {
-    if (number >= 0 ) {
-        return number;
-    } else {
-        return -number;
-    }
+	this_tick = SDL_GetTicks();
+	if ( this_tick < next_tick ) {
+		SDL_Delay(next_tick-this_tick);
+	}
+	next_tick = this_tick + (1000/FRAMES_PER_SEC);
 }
 
 int main(int argc, char **argv) {
 
-    #ifdef psp
+    #ifdef PSP
 	    scePowerSetClockFrequency(333, 333, 166);
     	SetupCallbacks();
         atexit(sceKernelExitGame);
     #else
-	    atexit(SDL_Quit);   // Avisa o sistema que antes de sair da aplicação o método SDL_QUIT deve ser executado
+	    atexit(SDL_Quit);
     #endif
 
-    srand(time(NULL));// Melhora o sistema de geração de números randômicos (caso contrario a sequencia dos numeros gerados é sempre a mesma)
-    char pontuacao[5];
-    char *hiscoreChar;
-    hiscoreChar = new char[5];
-	int probDeCriarEnemy;// usado para calcular probabilidade de criar um novo enemy
-    int systemTicks;
-    int nextFrameTicks;
+	// ==================================INITIALIZE EVERYTHING==================================
+    srand(time(NULL));
+    char playerScoreRuntime[5];
+    char *playerHiscoreRuntime;
+    playerHiscoreRuntime = new char[5];
+	int probDeCriarEnemy;// calc to create a enemy
+    IL_Screen *screen = new IL_Screen();
+    SDL_ShowCursor(false);
+    SDL_WM_SetCaption("Insanerz Shooter", NULL);
+    TTF_Init();
 
-    FILE *pFile = fopen("hiscore.dat", "rt");
+	// =======================================LOAD HISCORE======================================
+    FILE *pFile = fopen(DATAFILE("hiscore.dat"), "rt");
     if (pFile != NULL) {
-        fgets(hiscoreChar, 6, pFile);
-        HISCORE = strtol(hiscoreChar, NULL, 10);
+        fgets(playerHiscoreRuntime, 6, pFile);
+        HISCORE = strtol(playerHiscoreRuntime, NULL, 10);
         fclose(pFile);
     } else {
         HISCORE = 0;
     }
 
-    IL_Screen *screen = new IL_Screen(false);// Cria uma nova tela
-    SDL_ShowCursor(false);// Esconde o ponteiro do mouse
-    SDL_WM_SetCaption("Insanerz Shooter", NULL);// Muda o título da janela
-    TTF_Init();
-    // iniciando sistema de som
+    // ======================================MUSIC & SNDFX======================================
     Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1200);
     Mix_AllocateChannels(MIX_DEFAULT_CHANNELS);
-
-    // Carregando efeitos sonoros e musica
-    Mix_Music *musica = Mix_LoadMUS ("res/musica.wav");
-    Mix_Chunk *powerup = Mix_LoadWAV ("res/powerup.wav");
-    Mix_Chunk *doubleshoot = Mix_LoadWAV ("res/doubleshot.wav");
-    Mix_Chunk *tripleshoot = Mix_LoadWAV ("res/tripleshot.wav");
-    Mix_Chunk *insaneshoot = Mix_LoadWAV ("res/insaneshot.wav");
-    Mix_Chunk *laser = Mix_LoadWAV ("res/laser.wav");
-    Mix_Chunk *explosion = Mix_LoadWAV ("res/explosion.wav");
-    Mix_Chunk *playerExplosion = Mix_LoadWAV ("res/bomb.wav");
-    Mix_Chunk *speedup = Mix_LoadWAV ("res/speedup.wav");
-
+    Mix_Music *musica = Mix_LoadMUS(DATAFILE("musica.wav"));
+    Mix_Chunk *powerup = Mix_LoadWAV(DATAFILE("powerup.wav"));
+    Mix_Chunk *doubleshoot = Mix_LoadWAV(DATAFILE("doubleshot.wav"));
+    Mix_Chunk *tripleshoot = Mix_LoadWAV(DATAFILE("tripleshot.wav"));
+    Mix_Chunk *insaneshoot = Mix_LoadWAV(DATAFILE("insaneshot.wav"));
+    Mix_Chunk *laser = Mix_LoadWAV(DATAFILE("laser.wav"));
+    Mix_Chunk *explosion = Mix_LoadWAV(DATAFILE("explosion.wav"));
+    Mix_Chunk *playerExplosion = Mix_LoadWAV(DATAFILE("bomb.wav"));
+    Mix_Chunk *speedup = Mix_LoadWAV(DATAFILE("speedup.wav"));
     Mix_PlayMusic(musica, -1);
 
-     // Criando e posicionando o sprite do player (ignore o ultimo parametro, por enquanto não é usado)
-    IL_Sprite playerSprite("res/player.png", 2);
+	// ======================================PLAYER & ENEMY=====================================
+    IL_Sprite playerSprite(DATAFILE("player.png"), 2);
     IL_Player *player = new IL_Player(playerSprite);
-
-    // Criando e sprite do enemy (ignore o ultimo parametro, por enquanto não é usado)
-    IL_Sprite spriteEnemy("res/enemy1.png", 2);
-    IL_Sprite spriteEnemy2("res/enemy2.png", 2);
-    IL_Sprite spriteEnemy3("res/enemy3.png", 2);
-
-    // Cria um backgroundGroup inicial de enemies
+    IL_Bullets *bullets = new IL_Bullets();
+    IL_Sprite spriteEnemy(DATAFILE("enemy1.png"), 2);
+    IL_Sprite spriteEnemy2(DATAFILE("enemy2.png"), 2);
+    IL_Sprite spriteEnemy3(DATAFILE("enemy3.png"), 2);
     EnemyGroup enemiesGroup = EnemyGroup();
 
-    // Cria um backgroundGroup inicial de powerups vazio
+	// =========================================POWERUPS========================================
     PowerUpsGroup powerupsGroup = PowerUpsGroup(player);
-    IL_Sprite powerUp1Sprite("res/powerup1.png", 2);
-    IL_Sprite powerUp2Sprite("res/powerup2.png", 2);
+    IL_Sprite powerUp1Sprite(DATAFILE("powerup1.png"), 2);
+    IL_Sprite powerUp2Sprite(DATAFILE("powerup2.png"), 2);
 
-	// Cria objeto responsável por controlar os bullets
-    IL_Bullets *bullets = new IL_Bullets();
+    IL_InputHandle inputHandle = IL_InputHandle(screen, player, bullets, &enemiesGroup, &powerupsGroup, laser);
 
-	// Cria objeto responsável por controlar o teclado
-    IL_Keyboard teclado = IL_Keyboard(screen, player, bullets, &enemiesGroup, &powerupsGroup, laser);
+	#ifdef ANDROID
+    	TTF_Font *normalFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), 12);
+    	TTF_Font *smallFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), 10);
+	#else
+    	TTF_Font *normalFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), 20);
+		TTF_Font *smallFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), 16);
+	#endif
 
-    // Carrega a fonte em 2 tamanhos diferentes
-    TTF_Font *font = TTF_OpenFont("res/FreeSans_bold.ttf", 20);
-    TTF_Font *fontPequena = TTF_OpenFont("res/FreeSans_bold.ttf", 16);
-
-    // CORES
-    SDL_Color corBranca = {255, 255, 255};
-    SDL_Color corAmarela = {255, 255, 0};
-
-    // Cria uma surface usada para exibir SCORE
-    SDL_Surface *scoreSurface = TTF_RenderText_Solid(font, "SCORE", corAmarela);
+    // ==========================================SCORE==========================================
+    SDL_Surface *scoreSurface = TTF_RenderText_Solid(normalFont, "SCORE", yellowColor);
     SDL_Rect scoreRect;
     scoreRect.x = 20;
     scoreRect.y = 0;
-    // Cria uma surface e um SDL_Rect (posicao) usados para exibir a pontuação do player
-    SDL_Surface *playerScoreSurface = TTF_RenderText_Solid(font, "0", corBranca);
+    SDL_Surface *playerScoreSurface = TTF_RenderText_Solid(normalFont, "0", whiteColor);
     SDL_Rect *playerScoreRect = new SDL_Rect();
     playerScoreRect->x = 20;
     playerScoreRect->y = 20;
 
-    // Cria uma surface usada para exibir HISCORE
-    SDL_Surface *hiscoreSurface = TTF_RenderText_Solid(font, "HISCORE", corAmarela);
+    // =========================================HISCORE=========================================
+    SDL_Surface *hiscoreSurface = TTF_RenderText_Solid(normalFont, "HISCORE", yellowColor);
     SDL_Rect hiscoreRect;
     hiscoreRect.x = SCREEN_WIDTH - hiscoreSurface->w - 20;
     hiscoreRect.y = 0;
-    // Cria uma surface e um SDL_Rect (posicao) usados para exibir a pontuação mais alta do player
-    SDL_Surface *hiscoreNUMSurface = TTF_RenderText_Solid(font, "0", corBranca);
+    SDL_Surface *hiscoreNUMSurface = TTF_RenderText_Solid(normalFont, "0", whiteColor);
     SDL_Rect *hiscoreNUMRect = new SDL_Rect();
     hiscoreNUMRect->x = SCREEN_WIDTH - hiscoreSurface->w - 20;
     hiscoreNUMRect->y = 20;
 
-    // Cria uma surface usada para exibir PAUSE
-    SDL_Surface *pauseSurface = TTF_RenderText_Solid(font, "P A U S E", corBranca);
+    // ==========================================PAUSE==========================================
+    SDL_Surface *pauseSurface = TTF_RenderText_Solid(normalFont, "P A U S E", whiteColor);
     SDL_Rect pauseRect;
     pauseRect.x = (SCREEN_WIDTH - pauseSurface->w) / 2;
     pauseRect.y = (SCREEN_HEIGHT - pauseSurface->h) / 2;
 
-    // Cria uma surface e um SDL_Rect (posicao) usados para exibir a energia da gun do player
-    SDL_Surface *bulletSurface = TTF_RenderText_Solid(font, "BULLETS", corAmarela);
+    // =========================================BULLETS=========================================
+    SDL_Surface *bulletSurface = TTF_RenderText_Solid(normalFont, "BULLETS", yellowColor);
     SDL_Rect bulletRect;
     bulletRect.x = SCREEN_WIDTH * 0.4;
     bulletRect.y = 20;
 
-    // Cria uma surface usada para exibir a URL
-    SDL_Surface *urlSurface = TTF_RenderText_Solid(fontPequena, "http://insanerzshooter.googlepages.com", corAmarela);
+    // ===========================================URL===========================================
+    SDL_Surface *urlSurface = TTF_RenderText_Solid(smallFont, "http://insanerzshooter.googlepages.com", yellowColor);
     SDL_Rect urlRect;
     urlRect.x = 0;
     urlRect.y = 0;
 
-	// Cria uma surface usada para exibir o início
-    SDL_Surface *pressFireSurface = TTF_RenderText_Solid(fontPequena, "Press FIRE to start", corAmarela);
+	// ==========================================START==========================================
+    SDL_Surface *pressFireSurface = TTF_RenderText_Solid(smallFont, "Press FIRE to start", yellowColor);
     SDL_Rect pressFireRect;
     pressFireRect.x = (SCREEN_WIDTH - pressFireSurface->w) / 2;
     pressFireRect.y = int(SCREEN_HEIGHT - (2 * 16));
 
-    // Logo Insanerz Shooter (parte do insanerz)
+    // ==========================================LOGO===========================================
     IL_AnimatedText insanerz[8];
-    insanerz[0] = IL_AnimatedText("I", 0,   0, false, font);
-    insanerz[1] = IL_AnimatedText("N", 30,  20, false, font);
-    insanerz[2] = IL_AnimatedText("S", 60,  40, false, font);
-    insanerz[3] = IL_AnimatedText("A", 90,  60, false, font);
-    insanerz[4] = IL_AnimatedText("N", 120, 40, false, font);
-    insanerz[5] = IL_AnimatedText("E", 150, 20, false, font);
-    insanerz[6] = IL_AnimatedText("R", 180, 0, false, font);
-    insanerz[7] = IL_AnimatedText("Z", 210, 20, false, font);
+    insanerz[0] = IL_AnimatedText("I", 0,   0, false, normalFont);
+    insanerz[1] = IL_AnimatedText("N", 30,  20, false, normalFont);
+    insanerz[2] = IL_AnimatedText("S", 60,  40, false, normalFont);
+    insanerz[3] = IL_AnimatedText("A", 90,  60, false, normalFont);
+    insanerz[4] = IL_AnimatedText("N", 120, 40, false, normalFont);
+    insanerz[5] = IL_AnimatedText("E", 150, 20, false, normalFont);
+    insanerz[6] = IL_AnimatedText("R", 180, 0, false, normalFont);
+    insanerz[7] = IL_AnimatedText("Z", 210, 20, false, normalFont);
     SDL_Rect insanerzRect;
-
-    // Logo Insanerz Shooter (parte do shooter)
     IL_AnimatedText shooter[7];
-    shooter[0] = IL_AnimatedText("S", 0,   0, false, font);
-    shooter[1] = IL_AnimatedText("H", 30,  20, false, font);
-    shooter[2] = IL_AnimatedText("O", 60,  40, false, font);
-    shooter[3] = IL_AnimatedText("O", 90,  60, false, font);
-    shooter[4] = IL_AnimatedText("T", 120, 40, false, font);
-    shooter[5] = IL_AnimatedText("E", 150, 20, false, font);
-    shooter[6] = IL_AnimatedText("R", 180, 0, false, font);
+    shooter[0] = IL_AnimatedText("S", 0,   0, false, normalFont);
+    shooter[1] = IL_AnimatedText("H", 30,  20, false, normalFont);
+    shooter[2] = IL_AnimatedText("O", 60,  40, false, normalFont);
+    shooter[3] = IL_AnimatedText("O", 90,  60, false, normalFont);
+    shooter[4] = IL_AnimatedText("T", 120, 40, false, normalFont);
+    shooter[5] = IL_AnimatedText("E", 150, 20, false, normalFont);
+    shooter[6] = IL_AnimatedText("R", 180, 0, false, normalFont);
 
+	// =======================================BACKGROUND========================================
     ParticleGroup *backgroundGroup = new ParticleGroup();
-    for(int i=0; i < NUMBER_OF_BACKGROUND_STARS; i++) {
-        backgroundGroup->addParticleSystem(rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT, 2, 0, -1);
+    for(int i = 0; i < NUMBER_OF_BACKGROUND_STARS; i++) {
+        backgroundGroup->addParticleSystem(rand() % SCREEN_WIDTH, rand() % SCREEN_HEIGHT, 2, 0, -1);
     }
 
     while(true) {
 
-        systemTicks = SDL_GetTicks();
-        nextFrameTicks = systemTicks + 8;
+    	waitFrame();
 
-        screen->limpar();// Pinta tudo de preto
-        backgroundGroup->draw(screen->surface);// desenha as particulas
-        screen->drawBarraFirePower(player);// Desenha a parte superior da tela
+        screen->clean();
+        backgroundGroup->draw(screen->surface);
+        screen->drawFirePowerBar(player);
         powerupsGroup.actAndDraw(screen->surface);
-        enemiesGroup.checkCollision(bullets, backgroundGroup, explosion);// Verifica se player matou algum enemy
-        enemiesGroup.actAndDraw(screen->surface, backgroundGroup);// Move os enemies e desenha eles na tela
+        enemiesGroup.checkCollision(bullets, backgroundGroup, explosion);
+        enemiesGroup.actAndDraw(screen->surface, backgroundGroup);
 
         if (!GAME_PAUSED) {
-            bullets->updatePositions();// Move os bullets
+            bullets->updatePositions();
         }
+        bullets->draw(screen->surface);
 
-        bullets->draw(screen->surface);// Desenha bullets na tela
-        teclado.verificaTeclasPressionadas();// Verifica quais teclas estão sendo pressionadas
-
-		if (PLAYER_SCORE % 30) {
-			PLAYER_LIVES++;
-		}
+		// =====================================GAME INPUT======================================
+        inputHandle.checkPressed();
+        inputHandle.handleActions();
 
         if (PLAYER_ALIVE) {
             powerupsGroup.checkCollision(powerup, doubleshoot, tripleshoot, insaneshoot, speedup);
-            screen->draw(player->playerSprite);// Desenha player na tela
-            // probabilidade de criar particula de "fogo" da nave
-            int probDeCriarParticulaDeFogo = 6 - ((int) player->speed);// a prob de criar particula de fogo será proporcional a vel da nave
+            screen->draw(player->playerSprite);
+            int probDeCriarParticulaDeFogo = 6 - ((int) player->speed);
             if (!GAME_PAUSED) {
                 if (rand()%probDeCriarParticulaDeFogo == 1) {
                     backgroundGroup->addParticleSystem(player->playerSprite.position.x, player->playerSprite.position.y, 1, 0, 40);
                 }
             } else {
-                SDL_BlitSurface(pauseSurface, NULL, screen->surface, &pauseRect);// Exibe nome do jogo
+                SDL_BlitSurface(pauseSurface, NULL, screen->surface, &pauseRect);
             }
+			if (PLAYER_SCORE % 30 == 0) {
+				PLAYER_LIVES++;
+			}
+			//========================================HEADER========================================
+	        SDL_BlitSurface(scoreSurface, NULL, screen->surface, &scoreRect);
+	        SDL_BlitSurface(bulletSurface, NULL, screen->surface, &bulletRect);
+			// ========================================SCORE========================================
+	        sprintf(playerScoreRuntime,"%i",PLAYER_SCORE);
+	        #ifdef PSP
+	        	playerScoreSurface = TTF_RenderText_Solid(smallFont, playerScoreRuntime, whiteColor);
+	        #else
+	        	playerScoreSurface = TTF_RenderText_Solid(normalFont, playerScoreRuntime, whiteColor);
+	        #endif
+			playerScoreRect->x = SCREEN_WIDTH * 0.05 + ((scoreSurface->w - playerScoreSurface->w) / 2);
+	        SDL_BlitSurface(playerScoreSurface, NULL, screen->surface, playerScoreRect);
+	        SDL_FreeSurface(playerScoreSurface);//********************************************************************************************************************
+			// =======================================HISCORE=======================================
+		    sprintf(playerHiscoreRuntime,"%i",HISCORE);
+		    #ifdef PSP
+			    hiscoreNUMSurface = TTF_RenderText_Solid(smallFont, playerHiscoreRuntime, whiteColor);
+		    #else
+			    hiscoreNUMSurface = TTF_RenderText_Solid(normalFont, playerHiscoreRuntime, whiteColor);
+		    #endif
+			hiscoreNUMRect->x = (SCREEN_WIDTH * 0.75) + ((hiscoreSurface->w - hiscoreNUMRect->w) / 2);
+		    SDL_BlitSurface(hiscoreNUMSurface, NULL, screen->surface, hiscoreNUMRect);
+		    SDL_FreeSurface(hiscoreNUMSurface);
+			// ===================================CHECK COLLISION===================================
+		    if (enemiesGroup.checkCollision(player)) {
+				if (PLAYER_LIVES > 0) {
+					PLAYER_LIVES--;
+				} else {
+				    Mix_PlayChannel(-1, playerExplosion, 0);
+				    player->deathTimer->start();
+				    PLAYER_ALIVE = false;
+				    if (PLAYER_SCORE > HISCORE) {
+				        HISCORE = PLAYER_SCORE;
+						// ===============================ADD HISCORE===============================
+				        FILE *pFile = fopen(DATAFILE("hiscore.dat"), "w+");
+				        sprintf(playerHiscoreRuntime,"%i",HISCORE);
+				        if (pFile != NULL) {
+				            fputs(playerHiscoreRuntime, pFile);
+				            fclose(pFile);
+				        }
+				    }
+				    backgroundGroup->addParticleSystem(player->playerSprite.position.x, player->playerSprite.position.y, 0, 500, 400);
+				}
+		    }
         } else {
-            // Desenhando nome do jogo
             for (int i = 0; i < 8; i++) {
                 insanerzRect.x = insanerz[i].posicaoChar.x + TITLE_X;
                 insanerzRect.y = insanerz[i].posicaoChar.y + TITLE_Y;
@@ -324,75 +357,12 @@ int main(int argc, char **argv) {
                 }
             }
             if (player->deathTimer->get_ticks() > 5000) {
-                SDL_BlitSurface(pressFireSurface, NULL, screen->surface, &pressFireRect);// Exibe "Press FIRE to start"
+                SDL_BlitSurface(pressFireSurface, NULL, screen->surface, &pressFireRect);
             }
-
-            SDL_BlitSurface(urlSurface, NULL, screen->surface, &urlRect);// Exibe a URL
-
+            SDL_BlitSurface(urlSurface, NULL, screen->surface, &urlRect);
         }
 
-        teclado.acoesDoTeclado();// Realiza ações do teclado (move a nave, atira, etc)
-
-		//Exibe o HEADER
-        if (PLAYER_ALIVE) {
-            SDL_BlitSurface(scoreSurface, NULL, screen->surface, &scoreRect);
-            SDL_BlitSurface(bulletSurface, NULL, screen->surface, &bulletRect);
-        }
-        SDL_BlitSurface(hiscoreSurface, NULL, screen->surface, &hiscoreRect);
-
-		// Verifica se o player foi atingido
-        if (PLAYER_ALIVE == true && enemiesGroup.checkCollision(player)) {
-			if (PLAYER_LIVES > 0) {
-				PLAYER_LIVES--;
-			} else {
-		        Mix_PlayChannel(-1, playerExplosion, 0);
-		        player->deathTimer->start();
-		        PLAYER_ALIVE = false;
-		        if (PLAYER_SCORE > HISCORE) {
-		            HISCORE = PLAYER_SCORE;
-					// Adiciona a pontuacao maxima no arquivo de highscore
-		            FILE *pFile = fopen("hiscore.dat", "w+");
-		            sprintf(hiscoreChar,"%i",HISCORE);
-		            if (pFile != NULL) {
-		                fputs(hiscoreChar, pFile);
-		                fclose(pFile);
-		            }
-		        }
-		        backgroundGroup->addParticleSystem(player->playerSprite.position.x, player->playerSprite.position.y, 0, 500, 400);
-			}
-        }
-
-		// Exibe a pontuacao
-        if (PLAYER_ALIVE) {
-            sprintf(pontuacao,"%i",PLAYER_SCORE);
-            #ifdef psp
-            	playerScoreSurface = TTF_RenderText_Solid(fontPequena, pontuacao, corBranca);
-            #else
-            	playerScoreSurface = TTF_RenderText_Solid(font, pontuacao, corBranca);
-            #endif
-			playerScoreRect->x = SCREEN_WIDTH * 0.05 + ((scoreSurface->w - playerScoreSurface->w) / 2);
-            SDL_BlitSurface(playerScoreSurface, NULL, screen->surface, playerScoreRect);
-            SDL_FreeSurface(playerScoreSurface);
-        }
-
-		// Exibe a pontuacao maxima
-        sprintf(hiscoreChar,"%i",HISCORE);
-        #ifdef psp
-    	    hiscoreNUMSurface = TTF_RenderText_Solid(fontPequena, hiscoreChar, corBranca);
-        #else
-	        hiscoreNUMSurface = TTF_RenderText_Solid(font, hiscoreChar, corBranca);
-        #endif
-		hiscoreNUMRect->x = (SCREEN_WIDTH * 0.75) + ((hiscoreSurface->w - hiscoreNUMRect->w) / 2);
-        SDL_BlitSurface(hiscoreNUMSurface, NULL, screen->surface, hiscoreNUMRect);
-        SDL_FreeSurface(hiscoreNUMSurface);
-
-        // Se necessário, aguarda alguns milisegundos para manter o FPS constante
-        systemTicks = SDL_GetTicks();
-        if (nextFrameTicks > systemTicks) SDL_Delay(nextFrameTicks-systemTicks);
-        // Exibe o novo cenário ao usuário
-        SDL_Flip(screen->surface);
-
-        // se tiver menos do que 50 enemies, tem certa probabilidade de criar um novo enemy
+        // ====================================CREATE ENEMY=====================================
         if (enemiesGroup.enemies.size() < 50 && !GAME_PAUSED) {
             if (PLAYER_SCORE < 100 && enemiesGroup.enemies.size() < 30) {
                 probDeCriarEnemy = rand() % 100;
@@ -413,23 +383,15 @@ int main(int argc, char **argv) {
             }
 
             if (probDeCriarEnemy == 1) {
-                // 0 = apenas anda para baixo
-                // 1 = zigue zague para direita
-                // 2 = zigue zague para esquerda
-                // 3 = giro curto sentido horario em seguida anda reto para baixo
-                // 4 = giro curto sentido anti-horario
-                // 5 = giro curto sentido horario
-                // 6 = giro longo sentido horario
-                // 7 = giro longo sentido anti-horario
                 if (PLAYER_SCORE > 30) {
-                    int typeRand = rand()%4;
+                    int typeRand = rand() % 4;
                     if (typeRand == 0) {
                         enemiesGroup.createNewEnemy(spriteEnemy3, typeRand);
                     } else {
                         enemiesGroup.createNewEnemy(spriteEnemy, typeRand);
                     }
                 } else {
-                    int typeRand = rand()%3;
+                    int typeRand = rand() % 3;
                     if (typeRand == 0) {
                         enemiesGroup.createNewEnemy(spriteEnemy3, typeRand);
                     } else {
@@ -439,16 +401,16 @@ int main(int argc, char **argv) {
 
             } else if (probDeCriarEnemy == 2) {
                 if (PLAYER_SCORE > 30 && PLAYER_SCORE < 150) {
-                    if (rand()%8 == 1) {
-                        enemiesGroup.createNewEnemy(spriteEnemy2, 4 + rand()%2);
+                    if (rand() % 8 == 1) {
+                        enemiesGroup.createNewEnemy(spriteEnemy2, 4 + rand() % 2);
                     }
                 } else if (PLAYER_SCORE > 150) {
-                    enemiesGroup.createNewEnemy(spriteEnemy2, 4 + rand()%4);
+                    enemiesGroup.createNewEnemy(spriteEnemy2, 4 + rand() % 4);
                 }
             }
         }
 
-        // Probabilidade de criar um powerup novo
+        // ====================================CREATE POWERUP===================================
         int probDeCriarPowerUp = rand() % 3000;
 		if (!GAME_PAUSED) {
 			if (probDeCriarPowerUp == 1) {
@@ -464,8 +426,12 @@ int main(int argc, char **argv) {
 				}
 			}
 		}
+
+	    SDL_BlitSurface(hiscoreSurface, NULL, screen->surface, &hiscoreRect);
+        SDL_Flip(screen->surface);
     }
 
+	// =======================================RELEASE ALL=======================================
     Mix_FreeChunk(powerup);
     Mix_FreeChunk(doubleshoot);
     Mix_FreeChunk(tripleshoot);
@@ -478,7 +444,7 @@ int main(int argc, char **argv) {
     Mix_CloseAudio();
     TTF_Quit();
 
-    #ifdef psp
+    #ifdef PSP
 	    sceKernelExitGame();
     #endif
 

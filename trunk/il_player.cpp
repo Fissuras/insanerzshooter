@@ -1,7 +1,6 @@
 #include "il_player.h"
-#include "global.h"
 
-void IL_Player::reiniciar() {
+void IL_Player::restart() {
 	PLAYER_SCORE = 0;
 	gun = 0;
 	gunSpeed = 430;
