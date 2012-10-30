@@ -8,9 +8,7 @@ void IL_AnimatedText::animate() {
 
 	if (estaSubindo) {
 		posicaoChar.y = posicaoChar.y - cos(varAuxiliarCos);
-		//posicaoChar.y = 10;
 	} else {
-		//posicaoChar.y = posicaoChar.y + cos(varAuxiliarCos);
 		posicaoChar.y = posicaoChar.y + cos(varAuxiliarCos);
 	}
 

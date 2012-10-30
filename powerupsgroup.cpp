@@ -1,33 +1,28 @@
 #include "powerupsgroup.h"
 
-// Adiciona um novo powerup ao group
 void PowerUpsGroup::add(PowerUp powerUp) {
-	powerups.push_back(powerUp);
+	powerupsGroup.push_back(powerUp);
 }
 
-// Executa o método act() de todos os powerups e os desenha na tela/surface
 void PowerUpsGroup::actAndDraw(SDL_Surface *tela) {
-	for (unsigned int i = 0; i < powerups.size(); i++) {
-		powerups.at(i).act();
-		if (powerups.at(i).position.y > 0) {
+	for (unsigned int i = 0; i < powerupsGroup.size(); i++) {
+		powerupsGroup.at(i).act();
+		if (powerupsGroup.at(i).position.y > 0) {
 			SDL_Rect rect;
-			rect.x = powerups.at(i).position.x;
-			rect.y = powerups.at(i).position.y;
+			rect.x = powerupsGroup.at(i).position.x;
+			rect.y = powerupsGroup.at(i).position.y;
 
-			SDL_BlitSurface(powerups.at(i).surface, NULL, tela, &rect);
+			SDL_BlitSurface(powerupsGroup.at(i).surface, NULL, tela, &rect);
 		}
 	}
 }
 
-// Verifica se player pegou um powerup. Se sim, adiciona ao player a habilidade daquele powerup
-void PowerUpsGroup::checkCollision(Mix_Chunk * powerup, Mix_Chunk * doubleshoot, Mix_Chunk * tripleshoot, Mix_Chunk * insaneshoot, Mix_Chunk * speedup) {
-	// para cada powerup
-	for (unsigned int i = 0; i < powerups.size(); i++) {
+void PowerUpsGroup::checkCollision(Mix_Chunk *powerup, Mix_Chunk *doubleshoot, Mix_Chunk *tripleshoot, Mix_Chunk *insaneshoot, Mix_Chunk *speedup) {
+	for (unsigned int i = 0; i < powerupsGroup.size(); i++) {
 
-		// verifica colisao com player
-		if ( Abs(player->playerSprite.position.x - powerups.at(i).position.x) < + 28 && Abs(player->playerSprite.position.y - powerups.at(i).position.y) < 28) {
+		if ( Abs(player->playerSprite.position.x - powerupsGroup.at(i).position.x) < + 28 && Abs(player->playerSprite.position.y - powerupsGroup.at(i).position.y) < 28) {
 
-			if (powerups.at(i).type == 0) { // player pegou um powerup para o bullet
+			if (powerupsGroup.at(i).type == 0) { // bullet powerup
 
 				player->bulletNumber = 100;
 				if (player->gunSpeed > 230) {
@@ -35,7 +30,6 @@ void PowerUpsGroup::checkCollision(Mix_Chunk * powerup, Mix_Chunk * doubleshoot,
 					player->gunSpeed = player->gunSpeed - 100;
 				} else {
 
-					// tocando respectivo som
 					switch (player->gun) {
 					case 0:
 						Mix_PlayChannel(-1, doubleshoot, 0);
@@ -59,25 +53,15 @@ void PowerUpsGroup::checkCollision(Mix_Chunk * powerup, Mix_Chunk * doubleshoot,
 					}
 				}
 
-			} else { // player pegou um powerup para speed
+			} else { // speed powerup
 				Mix_PlayChannel(-1, speedup, 0);
 				if (player->speed < 4) {
 					player->speed = player->speed + 0.5;
 				}
 			}
 
-			powerups.erase(powerups.begin() + i);
+			powerupsGroup.erase(powerupsGroup.begin() + i);
 		}
 
 	}
-}
-
-// Método criado para calcular o valor absoluto (ou seja, sem o sinal) de um número
-// @param numero número a ser avaliado
-double PowerUpsGroup::Abs(double number) {
-    if ( number >= 0 ) {
-        return number;
-    } else {
-        return -number;
-    }
 }

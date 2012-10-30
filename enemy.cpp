@@ -1,19 +1,15 @@
 #include "enemy.h"
-#include <math.h>
 
-// Método responsável pelo comportamento do enemy.
-// Cada type de enemy tem um comportamento.
-// Talvez fosse mais interessante usar polimorfismo e dividir em várias classes os enemies, mas tive problemas para fazer isso em C++.
 void Enemy::act() {
 
 	if (GAME_PAUSED) {
 		return;
 	}
 
-	if (type == 0) {// 0 = apenas anda para baixo
+	if (type == 0) {// 0 = straight
 		position.y = position.y + speed;
 
-	} else if (type == 1) {// 1 = zigue zague para direita
+	} else if (type == 1) {// 1 = goes right
 		position.y = position.y + speed;
 		position.x = position.x + (sin(seno)) + 1;
 		seno = seno + 0.1;
@@ -21,7 +17,7 @@ void Enemy::act() {
 			type = 2;
 		}
 
-	} else if (type == 2) {// 2 = zigue zague para esquerda
+	} else if (type == 2) {// 2 = goes left
 		position.y = position.y + speed;
 		position.x = position.x + (sin(seno)) - 1;
 		seno = seno + 0.1;
@@ -29,7 +25,7 @@ void Enemy::act() {
 			type = 1;
 		}
 
-	} else if (type == 3) {// 3 = giro curto sentido horario em seguida anda reto para baixo
+	} else if (type == 3) {// 3 = short clockwise spin than go straight
 		if (position.y < 200) {
 			position.x = position.x + (cos(seno) * 5);
 			position.y = position.y + (sin(seno) * 5) + speed;
@@ -38,29 +34,29 @@ void Enemy::act() {
 			position.y = position.y + speed;
 		}
 
-	} else if (type == 4) {// 4 = giro curto sentido anti-horario
+	} else if (type == 4) {// 4 = short anti clockwise spin
 		position.x = position.x - (cos(seno) * 5);
 		position.y = position.y + (sin(seno) * 5) + speed;
 		seno = seno + 0.1;
 
-	} else if (type == 5) {// 5 = giro curto sentido horario
+	} else if (type == 5) {// 5 = short clockwise spin
 		position.x = position.x + (cos(seno) * 5);
 		position.y = position.y + (sin(seno) * 5) + speed;
 		seno = seno + 0.1;
 
-	} else if (type == 6) {// 6 = giro longo sentido horario
+	} else if (type == 6) {// 6 = long clockwise spin
 		position.x = position.x + (cos(seno) * 5);
 		position.y = position.y + (sin(seno) * 5) + speed;
 		seno = seno + 0.03;
 
-	} else if (type == 7) {// 7 = giro longo sentido anti-horario
+	} else if (type == 7) {// 7 = long anti clockwise spin
 		position.x = position.x - (cos(seno) * 5);
 		position.y = position.y + (sin(seno) * 5) + speed;
 		seno = seno + 0.03;
 	}
 
-	// Se sair da tela, volta para o topo em uma posição X aleatória
-	if ( position.y > int(SCREEN_WIDTH - (SCREEN_WIDTH * 0.125)) ) {
+	// Out of screen = reposition the enemy
+	if ( position.y > int(SCREEN_HEIGHT - surface->h) ) {
 		position.y = -250;
 		position.x = rand() % int(SCREEN_WIDTH - (SCREEN_WIDTH * 0.125));
 		seno = 0;
