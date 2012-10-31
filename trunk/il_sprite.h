@@ -8,6 +8,9 @@
 #endif
 #include "global.h"
 #include "il_position.h"
+#ifdef PSP
+	#include <cstdlib>
+#endif
 
 class IL_Sprite {
 

@@ -84,12 +84,8 @@
     #include <pspsdk.h>
     #include <psppower.h>
 
-    #ifdef PSPFW3X
     PSP_MODULE_INFO("InsanerzShooter", 0x0, 1, 1);
     PSP_HEAP_SIZE_KB(12*1024);
-    #else
-    PSP_MODULE_INFO("InsanerzShooter", 0x1000, 1, 1);
-    #endif
 
     int exit_callback(int arg1, int arg2, void *common) {
         sceKernelExitGame();

@@ -8,6 +8,9 @@
 #else
 	#include <SDL/SDL_image.h>
 #endif
+#ifdef PSP
+	#include <stdlib.h>
+#endif
 
 class Particle {
 
