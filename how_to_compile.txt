@@ -1,0 +1,16 @@
+Baixar em www.codeblocks.org a versão codeblocks-XX.XXmingw-setup.exe e instalar.
+
+Baixar em http://www.libsdl.org/download-1.2.php em Development Libraries a versão SDL-devel-1.2.XX-mingw32.tar.gz e extrair em c:.
+
+Baixar
+Abrir o codeblocks e configurar como em lazyfoo.net
+
+====================================DLLs===================================
+Baixar em http://www.libsdl.org/download-1.2.php em Development Libraries a versão SDL-devel-1.2.XX-VC.zip e extrair os arquivos .dll.
+Baixar em http://www.libsdl.org/projects/SDL_ttf/ o arquivo SDL_ttf-devel-2.X.XX-VC.zip e extrair os arquivos .dll.
+Baixar em http://www.libsdl.org/projects/SDL_image/ o arquivo SDL_ttf-devel-2.X.XX-VC.zip e extrair os arquivos .dll.
+Baixar em http://www.libsdl.org/projects/SDL_mixer/ o arquivo SDL_ttf-devel-2.X.XX-VC.zip e extrair os arquivos .dll.
+
+Todos os arquivos .dll vão para a pasta do executável gerado OU podem ir em windows/system32.
+
+Copiar a pasta 'data' para a pasta que é gerado o executável (Release ou Debug)
