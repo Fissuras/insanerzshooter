@@ -4,7 +4,7 @@
 #ifdef ANDROID
 	#include "SDL_image.h"
 #else
-	#include <SDL/SDL_image.h>
+	#include "SDL/SDL_image.h"
 #endif
 #include "global.h"
 #include "il_position.h"
