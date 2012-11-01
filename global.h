@@ -24,6 +24,8 @@ extern int SCREEN_WIDTH;
 extern int SCREEN_HEIGHT;
 extern int TITLE_X;
 extern int TITLE_Y;
+extern int SMALL_FONT_SIZE;
+extern int NORMAL_FONT_SIZE;
 
 extern double Abs(double number);// Get the absolute number
 
