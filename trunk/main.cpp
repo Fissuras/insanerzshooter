@@ -134,8 +134,8 @@ int main(int argc, char *args[]) {
 	// ==================================INITIALIZE EVERYTHING==================================
     srand(time(NULL));
     char playerScoreRuntime[5];
-    char *playerHiscoreRuntime;
-    playerHiscoreRuntime = new char[5];
+    char *playerHiscoreRuntime = new char[5];
+	char *playerLivesRuntime = new char[5];
 	int probDeCriarEnemy;// calc to create a enemy
     IL_Screen *screen = new IL_Screen();
     SDL_ShowCursor(false);
@@ -182,33 +182,29 @@ int main(int argc, char *args[]) {
 
     IL_InputHandle inputHandle = IL_InputHandle(screen, player, bullets, &enemiesGroup, &powerupsGroup, laser);
 
-	#ifdef ANDROID
-    	TTF_Font *normalFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), 12);
-    	TTF_Font *smallFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), 10);
-	#else
-    	TTF_Font *normalFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), 20);
-		TTF_Font *smallFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), 16);
-	#endif
+	// ==========================================FONTS==========================================
+	TTF_Font *normalFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), NORMAL_FONT_SIZE);
+	TTF_Font *smallFont = TTF_OpenFont(DATAFILE("FreeSans_bold.ttf"), SMALL_FONT_SIZE);
 
     // ==========================================SCORE==========================================
     SDL_Surface *scoreSurface = TTF_RenderText_Solid(normalFont, "SCORE", yellowColor);
     SDL_Rect scoreRect;
-    scoreRect.x = 20;
-    scoreRect.y = 0;
+    scoreRect.x = NORMAL_FONT_SIZE;
+    scoreRect.y = NORMAL_FONT_SIZE;
     SDL_Surface *playerScoreSurface = TTF_RenderText_Solid(normalFont, "0", whiteColor);
     SDL_Rect *playerScoreRect = new SDL_Rect();
-    playerScoreRect->x = 20;
-    playerScoreRect->y = 20;
+    playerScoreRect->x = NORMAL_FONT_SIZE;
+    playerScoreRect->y = NORMAL_FONT_SIZE * 2;
 
     // =========================================HISCORE=========================================
     SDL_Surface *hiscoreSurface = TTF_RenderText_Solid(normalFont, "HISCORE", yellowColor);
     SDL_Rect hiscoreRect;
-    hiscoreRect.x = SCREEN_WIDTH - hiscoreSurface->w - 20;
-    hiscoreRect.y = 0;
+    hiscoreRect.x = (SCREEN_WIDTH / 4) * 3;
+    hiscoreRect.y = NORMAL_FONT_SIZE;
     SDL_Surface *hiscoreNUMSurface = TTF_RenderText_Solid(normalFont, "0", whiteColor);
     SDL_Rect *hiscoreNUMRect = new SDL_Rect();
     hiscoreNUMRect->x = SCREEN_WIDTH - hiscoreSurface->w - 20;
-    hiscoreNUMRect->y = 20;
+    hiscoreNUMRect->y = NORMAL_FONT_SIZE * 2;
 
     // ==========================================PAUSE==========================================
     SDL_Surface *pauseSurface = TTF_RenderText_Solid(normalFont, "P A U S E", whiteColor);
@@ -219,14 +215,24 @@ int main(int argc, char *args[]) {
     // =========================================BULLETS=========================================
     SDL_Surface *bulletSurface = TTF_RenderText_Solid(normalFont, "BULLETS", yellowColor);
     SDL_Rect bulletRect;
-    bulletRect.x = SCREEN_WIDTH * 0.4;
-    bulletRect.y = 20;
+    bulletRect.x = (SCREEN_WIDTH / 4) * 2;
+    bulletRect.y = NORMAL_FONT_SIZE;
+
+	// ==========================================LIVES==========================================
+    SDL_Surface *livesSurface = TTF_RenderText_Solid(normalFont, "LIVES", yellowColor);
+    SDL_Rect livesRect;
+    livesRect.x = SCREEN_WIDTH / 4;
+    livesRect.y = NORMAL_FONT_SIZE;
+	SDL_Surface *livesNUMSurface = TTF_RenderText_Solid(normalFont, "0", whiteColor);
+    SDL_Rect *livesNUMRect = new SDL_Rect();
+    livesNUMRect->x = SCREEN_WIDTH / 4;
+    livesNUMRect->y = NORMAL_FONT_SIZE * 2;
 
     // ===========================================URL===========================================
     SDL_Surface *urlSurface = TTF_RenderText_Solid(smallFont, "http://insanerzshooter.googlepages.com", yellowColor);
     SDL_Rect urlRect;
-    urlRect.x = 0;
-    urlRect.y = 0;
+    urlRect.x = NORMAL_FONT_SIZE;
+    urlRect.y = NORMAL_FONT_SIZE;
 
 	// ==========================================START==========================================
     SDL_Surface *pressFireSurface = TTF_RenderText_Solid(smallFont, "Press FIRE to start", yellowColor);
@@ -235,6 +241,7 @@ int main(int argc, char *args[]) {
     pressFireRect.y = int(SCREEN_HEIGHT - (2 * 16));
 
     // ==========================================LOGO===========================================
+    SDL_Rect insanerzRect;
     IL_AnimatedText insanerz[8];
     insanerz[0] = IL_AnimatedText("I", 0,   0, false, normalFont);
     insanerz[1] = IL_AnimatedText("N", 30,  20, false, normalFont);
@@ -244,7 +251,6 @@ int main(int argc, char *args[]) {
     insanerz[5] = IL_AnimatedText("E", 150, 20, false, normalFont);
     insanerz[6] = IL_AnimatedText("R", 180, 0, false, normalFont);
     insanerz[7] = IL_AnimatedText("Z", 210, 20, false, normalFont);
-    SDL_Rect insanerzRect;
     IL_AnimatedText shooter[7];
     shooter[0] = IL_AnimatedText("S", 0,   0, false, normalFont);
     shooter[1] = IL_AnimatedText("H", 30,  20, false, normalFont);
@@ -291,12 +297,13 @@ int main(int argc, char *args[]) {
             } else {
                 SDL_BlitSurface(pauseSurface, NULL, screen->surface, &pauseRect);
             }
-			if (PLAYER_SCORE % 30 == 0) {
+			if (PLAYER_SCORE > 0 && (PLAYER_SCORE % 30 == 0)) {
 				PLAYER_LIVES++;
 			}
 			//========================================HEADER========================================
 	        SDL_BlitSurface(scoreSurface, NULL, screen->surface, &scoreRect);
 	        SDL_BlitSurface(bulletSurface, NULL, screen->surface, &bulletRect);
+			SDL_BlitSurface(livesSurface, NULL, screen->surface, &bulletRect);
 			// ========================================SCORE========================================
 	        sprintf(playerScoreRuntime,"%i",PLAYER_SCORE);
 	        #ifdef PSP
@@ -306,7 +313,7 @@ int main(int argc, char *args[]) {
 	        #endif
 			playerScoreRect->x = SCREEN_WIDTH * 0.05 + ((scoreSurface->w - playerScoreSurface->w) / 2);
 	        SDL_BlitSurface(playerScoreSurface, NULL, screen->surface, playerScoreRect);
-	        SDL_FreeSurface(playerScoreSurface);//********************************************************************************************************************
+	        SDL_FreeSurface(playerScoreSurface);
 			// =======================================HISCORE=======================================
 		    sprintf(playerHiscoreRuntime,"%i",HISCORE);
 		    #ifdef PSP
@@ -314,17 +321,24 @@ int main(int argc, char *args[]) {
 		    #else
 			    hiscoreNUMSurface = TTF_RenderText_Solid(normalFont, playerHiscoreRuntime, whiteColor);
 		    #endif
-			hiscoreNUMRect->x = (SCREEN_WIDTH * 0.75) + ((hiscoreSurface->w - hiscoreNUMRect->w) / 2);
+			hiscoreNUMRect->x = (SCREEN_WIDTH / 4) * 3;
 		    SDL_BlitSurface(hiscoreNUMSurface, NULL, screen->surface, hiscoreNUMRect);
 		    SDL_FreeSurface(hiscoreNUMSurface);
+			// ========================================LIVES========================================
+			sprintf(playerLivesRuntime,"%i",PLAYER_LIVES);
+			#ifdef PSP
+			    livesNUMSurface = TTF_RenderText_Solid(smallFont, playerLivesRuntime, whiteColor);
+		    #else
+			    livesNUMSurface = TTF_RenderText_Solid(normalFont, playerLivesRuntime, whiteColor);
+		    #endif
+			livesNUMRect->x = SCREEN_WIDTH / 4;
+		    SDL_BlitSurface(livesNUMSurface, NULL, screen->surface, livesNUMRect);
+		    SDL_FreeSurface(livesNUMSurface);
 			// ===================================CHECK COLLISION===================================
 		    if (enemiesGroup.checkCollision(player)) {
 				if (PLAYER_LIVES > 0) {
 					PLAYER_LIVES--;
 				} else {
-				    Mix_PlayChannel(-1, playerExplosion, 0);
-				    player->deathTimer->start();
-				    PLAYER_ALIVE = false;
 				    if (PLAYER_SCORE > HISCORE) {
 				        HISCORE = PLAYER_SCORE;
 						// ===============================ADD HISCORE===============================
@@ -335,10 +349,13 @@ int main(int argc, char *args[]) {
 				            fclose(pFile);
 				        }
 				    }
-				    backgroundGroup->addParticleSystem(player->playerSprite.position.x, player->playerSprite.position.y, 0, 500, 400);
 				}
+				Mix_PlayChannel(-1, playerExplosion, 0);
+			    player->deathTimer->start();
+			    PLAYER_ALIVE = false;
+				backgroundGroup->addParticleSystem(player->playerSprite.position.x, player->playerSprite.position.y, 0, 500, 400);
 		    }
-        } else {
+        } else if (PLAYER_LIVES == 0) {
             for (int i = 0; i < 8; i++) {
                 insanerzRect.x = insanerz[i].posicaoChar.x + TITLE_X;
                 insanerzRect.y = insanerz[i].posicaoChar.y + TITLE_Y;

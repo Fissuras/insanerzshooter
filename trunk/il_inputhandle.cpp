@@ -161,6 +161,13 @@ void IL_InputHandle::handleActions() {
 				enemiesGroup->enemies.clear();
 				powerupsGroup->powerupsGroup.clear();
 				shotButtonPressed = false; //avoid bug shot when restart the game
+			} else if (PLAYER_LIVES > 0) {
+				PLAYER_ALIVE = true;
+				PLAYER_LIVES = 2;
+				player->restart();
+				enemiesGroup->enemies.clear();
+				powerupsGroup->powerupsGroup.clear();
+				shotButtonPressed = false; //avoid bug shot when restart the game
 			}
 		} else {
 			// check if can shot

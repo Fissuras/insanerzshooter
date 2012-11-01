@@ -16,13 +16,8 @@ void IL_Screen::drawHeader() {
 	headerPosition.x = 0;
 	headerPosition.y = 0;
 
-	#ifdef PSP
-		headerPosition.h = 30;
-		headerPosition.y = 30;
-	#else
-		headerPosition.h = 40;
-		headerPosition.y = 40;
-	#endif
+	headerPosition.h = NORMAL_FONT_SIZE * 2;
+	headerPosition.y = NORMAL_FONT_SIZE * 2;
 
 	headerPosition.w = SCREEN_WIDTH;
 	SDL_FillRect(surface, &headerPosition, blueColor);
@@ -35,7 +30,7 @@ void IL_Screen::drawHeader() {
 void IL_Screen::drawFirePowerBar(IL_Player *player) {
 	SDL_Rect firepowerbarPosition = SDL_Rect();
 	if (PLAYER_ALIVE) {
-		firepowerbarPosition.x = SCREEN_WIDTH * 0.4;
+		firepowerbarPosition.x = (SCREEN_WIDTH / 4) * 2;
 		firepowerbarPosition.y = 30;
 		firepowerbarPosition.h = 4;
 		firepowerbarPosition.w = player->bulletNumber;
