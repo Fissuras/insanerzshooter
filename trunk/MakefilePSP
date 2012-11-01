@@ -1,32 +1,27 @@
 TARGET = InsanerzShooter
-OBJS = global.o timer.o il_position.o il_sprite.o il_animatedtext.o il_screen.o il_player.o bullet.o enemy.o enemygroup.o il_bullets.o il_inputhandle.o particle.o particlegroup.o particlessystem.o powerup.o powerupsgroup.o main.o
-#program_CXX_SRCS := $(wildcard *.cpp)
-#OBJS := ${program_CXX_SRCS:.cpp=.o}
+OBJS = main.o global.o timer.o il_position.o il_sprite.o il_animatedtext.o il_screen.o il_player.o bullet.o enemy.o enemygroup.o il_bullets.o il_inputhandle.o particle.o particlegroup.o particlessystem.o powerup.o powerupsgroup.o
 
 PSPSDK=$(shell psp-config --pspsdk-path)
-#PSPDEV = $(shell psp-config -d)
-PSPDEV = $(shell psp-config --pspdev-path)
-PSPPRE = $(shell psp-config --psp-prefix)
 PSPBIN = $(PSPSDK)/../bin
-SDL_CONFIG = $(PSPBIN)/sdl-config
 
+USE_PSPSDK_LIBC = 1
+
+INCDIR =
 CFLAGS = -O2 -G0 -Wall -DPSP
-CFLAGS += $(shell $(SDL_CONFIG) --cflags)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti 
 ASFLAGS = $(CFLAGS)
 
 BUILD_PRX=1
 PSP_FW_VERSION=371
+CXX = psp-g++
 
-#LIBS = -lSDL_gfx -lSDL_image -lSDL_mixer -lSDL_ttf -lvorbisidec -lfreetype -lpng -ljpeg -lz -lm $(shell $(SDL_CONFIG) --libs)
-#LIBS = -lstdc++ -lc -lSDLmain -lSDL  -lSDL_image -lSDL_ttf -lSDL_mixer -lfreetype -lpng -lz -lm -ljpeg -lpspaudio -lpsphprm -lpspgu -lpspwlan -lpsppower -lpsprtc 
-LIBS = -lSDL_ttf -lfreetype -lSDL_mixer -lvorbisidec -lSDL_image -lpng -lz -ljpeg $(shell $(PSPBIN)/sdl-config --libs | sed s/-lSDLmain//) -lpspdebug -lstdc++ -lpsppower -lpspctrl
-#LIBS  = $(shell $(PSPPRE)/bin/sdl-config --libs)
-#LIBS += -lSDL_ttf -lSDL_image -lSDL_mixer -lSDL -lSDLmain -lfreetype -lbz2 -lm -ljpeg -lpng -lz -lmad -lvorbisidec
-#LIBS += -L$(PSPSDK)/lib -L$(PSPDEV)/lib -lstdc++ -lpspsdk -lpspgu -lpspdebug -lpspdisplay -lpsphprm -lpspaudio -lpspge -lpspctrl -lc -lpspnet_inet -lpspuser -lpspkernel -lpsppower
+LIBS = -lstdc++ -lSDL_ttf -lfreetype -lSDL_mixer -lvorbisidec -lSDL_image -lpng -lz -ljpeg -lsmpeg $(shell $(PSPBIN)/sdl-config --libs | sed s/-lSDLmain//)
+LIBS += -lz -lm  -lSDL -lGL -lpspvfpu -lpsphprm -lpspaudio -lpspgu
+LIBDIR =
+LDFLAGS =
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = InsanerzcShooter
+PSP_EBOOT_TITLE = Insanerz Shooter
 PSP_EBOOT_ICON="icon0.png"
 
 include $(PSPSDK)/lib/build.mak
