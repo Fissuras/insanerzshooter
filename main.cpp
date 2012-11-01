@@ -84,7 +84,7 @@
     #include <pspsdk.h>
     #include <psppower.h>
 
-    PSP_MODULE_INFO("InsanerzShooter", 0x0, 1, 1);
+    PSP_MODULE_INFO("InsanerzShooter", 0, 1, 1);
     PSP_HEAP_SIZE_KB(12*1024);
 
     int exit_callback(int arg1, int arg2, void *common) {
@@ -121,7 +121,7 @@ void waitFrame(void) {
 	next_tick = this_tick + (1000/FRAMES_PER_SEC);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char *args[]) {
 
     #ifdef PSP
 	    scePowerSetClockFrequency(333, 333, 166);
